@@ -26,7 +26,7 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     - name: Set up Python 3.11
-      uses: actions/setup-python@v3
+      uses: actions/setup-python@v5
       with:
         python-version: "3.11"
         cache: "pip"
@@ -40,8 +40,11 @@ jobs:
         pyinstaller --onefile b616.py
         pyinstaller --onefile generate_excel.py
     - name: Upload artifacts
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v4
       with:
         name: executables-${{ matrix.generic-name }}
         path: dist/*
+        retention-days: 7
+        overwrite: true
+
 
