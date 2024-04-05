@@ -1,6 +1,6 @@
 # docs at https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-python
 
-name: PyInstaller Build on Windows
+name: Run a PyInstaller Build on Windows, Ubuntu, and MacOS
 
 on:
   pull_request:
@@ -11,7 +11,18 @@ permissions:
 
 jobs:
   build:
-    runs-on: windows-latest
+    strategy:
+      max-parallel: 3
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        include:
+          - os: ubuntu-latest
+            generic-name: Linux
+          - os: macos-latest
+            generic-name: MacOS
+          - os: windows-latest
+            generic-name: Windows
+    runs-on: ${{ matrix.os }}
     steps:
     - uses: actions/checkout@v4
     - name: Set up Python 3.11
@@ -31,6 +42,6 @@ jobs:
     - name: Upload artifacts
       uses: actions/upload-artifact@v2
       with:
-        name: Executables
-        path: dist/*.exe
+        name: executables-${{ matrix.generic-name }}
+        path: dist/*
 
