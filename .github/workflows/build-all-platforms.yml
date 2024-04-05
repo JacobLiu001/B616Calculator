@@ -3,8 +3,10 @@
 name: PyInstaller Build
 
 on:
-  pull_request:
   workflow_dispatch:
+  push:
+    tags:
+      - v*
 
 permissions:
   contents: read
