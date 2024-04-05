@@ -1,6 +1,6 @@
 # docs at https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-python
 
-name: Run a PyInstaller Build on Windows, Ubuntu, and MacOS
+name: PyInstaller Build
 
 on:
   pull_request:
