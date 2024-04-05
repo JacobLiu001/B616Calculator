@@ -3,6 +3,7 @@
 name: PyInstaller Build on Windows
 
 on:
+  pull_request:
   workflow_dispatch:
 
 permissions:
