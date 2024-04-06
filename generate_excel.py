@@ -10,17 +10,15 @@ DIFFICULTY_COLORS = {
     "PRS": "#9FD094",
     "FTR": "#A665C3",
     "BYD": "#BE6666",
-    "ETR": "#BEA2C6"
+    "ETR": "#BEA2C6",
 }
 
 
 def preprocess_songlist(raw):
     raw = raw["songs"]
-    songlist = {
-        song["id"]: song
-        for song in raw
-    }
+    songlist = {song["id"]: song for song in raw}
     return songlist
+
 
 # sequentially request the files
 URLTEMPLATE = r"https://arcwiki.mcd.blue/index.php?title={}&action=raw"
@@ -35,11 +33,13 @@ def disambiguateName(name, songid):
         name = transition["sameName"][name][songid]
     return name
 
+
 def getLinkName(songid):
     name = songlist[songid]["title_localized"]["en"]
     # convert to display name if possible
     name = transition["songNameToDisplayName"].get(name, name)
     return disambiguateName(name, songid)
+
 
 def getConstants(songid):
     raw = chartconstant[songid]
@@ -58,7 +58,9 @@ def getAllFlat():
         song = {
             "songid": songid,
             "linkName": getLinkName(songid),
-            "title": songlist[songid]["title_localized"]["en"], # will get disambiguated later
+            "title": songlist[songid]["title_localized"][
+                "en"
+            ],  # will get disambiguated later
         }
         for i, diff in enumerate(DIFFICULTIES):
             song_diff = song.copy()
@@ -76,9 +78,7 @@ def getAllFlat():
             song_diff["detail"] = constants[i]
             matrix.append(song_diff)
 
-    return pd.DataFrame.from_records(
-        matrix, index=["songid", "label"]
-    ).dropna()
+    return pd.DataFrame.from_records(matrix, index=["songid", "label"]).dropna()
 
 
 def make_backup(filename):
@@ -93,6 +93,7 @@ def make_backup(filename):
         warnings.warn("Overwriting the backup", UserWarning)
         backupname.unlink()
     shutil.copy2(filename, backupname)
+
 
 def main():
     FILE_NAME = "put_your_score_in_here.xlsx"
@@ -109,7 +110,9 @@ def main():
     except (FileNotFoundError, KeyError, ValueError) as e:
         df_output = df
         df_output["score"] = pd.NA
-        warnings.warn("Unable to process old scores, continuing without them", UserWarning)
+        warnings.warn(
+            "Unable to process old scores, continuing without them", UserWarning
+        )
         print(e)
 
     print(df_output)
@@ -117,51 +120,57 @@ def main():
 
     df_output["name"] = df_output["title"]
     df_output["name_for_sorting"] = df_output["name"].str.upper()
-    df_output["title"] = 'https://arcwiki.mcd.blue/' + df_output["linkName"]
+    df_output["title"] = "https://arcwiki.mcd.blue/" + df_output["linkName"]
 
-    df_output.sort_values(["label", "name_for_sorting"], inplace=True, ascending=[True, True])
+    df_output.sort_values(
+        ["label", "name_for_sorting"], inplace=True, ascending=[True, True]
+    )
 
     OUTPUT_COLUMNS = ["title", "label", "detail", "score", "songid"]
     writer = pd.ExcelWriter(FILE_NAME, engine="xlsxwriter")
-    df_output.to_excel(writer, index=False, columns=OUTPUT_COLUMNS, sheet_name=SHEET_NAME)
+    df_output.to_excel(
+        writer, index=False, columns=OUTPUT_COLUMNS, sheet_name=SHEET_NAME
+    )
 
     workbook = writer.book
     worksheet = writer.sheets[SHEET_NAME]
-    header_format = workbook.add_format({
-        "font_name": "calibri",
-        "bold": True,
-        "valign": "top",
-        "bg_color": "#FFE699",
-        "border": 1,
-        "align": "center"
-    })
-    base_format = workbook.add_format({
-        "font_name": "calibri",
-        "valign": "top",
-        "align": "center"
-    })
+    header_format = workbook.add_format(
+        {
+            "font_name": "calibri",
+            "bold": True,
+            "valign": "top",
+            "bg_color": "#FFE699",
+            "border": 1,
+            "align": "center",
+        }
+    )
+    base_format = workbook.add_format(
+        {"font_name": "calibri", "valign": "top", "align": "center"}
+    )
     worksheet.write_column(1, 0, df_output["name"], workbook.get_default_url_format())
     worksheet.set_column(0, 0, 50)
     worksheet.set_column(1, 2, 8, base_format)
     worksheet.set_column(3, 3, 15, base_format)
-    worksheet.set_column(4, 4, None, None, {"hidden": True}) # hide songid column
+    worksheet.set_column(4, 4, None, None, {"hidden": True})  # hide songid column
     for col_num, value in enumerate(OUTPUT_COLUMNS):
         worksheet.write(0, col_num, value, header_format)
 
     for difficulty, color in DIFFICULTY_COLORS.items():
         worksheet.conditional_format(
-            1, 1, len(df), 1,
+            1,
+            1,
+            len(df),
+            1,
             {
                 "type": "cell",
                 "criteria": "equal to",
                 "value": f'"{difficulty.upper()}"',
-                "format": workbook.add_format({
-                    "bg_color": color
-                })
-            }
+                "format": workbook.add_format({"bg_color": color}),
+            },
         )
 
     writer.close()
+
 
 if __name__ == "__main__":
     main()
