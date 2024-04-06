@@ -19,14 +19,14 @@
 
 
 其他:
-1. 如果arcaea(wiki)有更新, 运行 GeneratExcel_GK.py, 通常能一步到位更新. 
-运行后请检查 put_your_score_in_here.xlsx , 如果出现数据丢失, 结构错误等问题, 请*不要*重复运行程序. 
+1. 如果arcaea(wiki)有更新, 运行 GeneratExcel_GK.py, 通常能一步到位更新.
+运行后请检查 put_your_score_in_here.xlsx , 如果出现数据丢失, 结构错误等问题, 请*不要*重复运行程序.
 更新前的数据放在同目录下的 scores_here_backup.xlsx , 请单独存好并在群里@GK说明GeneratExcel错误.
 
 2. 如果不小心记录了错误/不需要的历史b30数据, 可以直接(用记事本)打开history_b30.csv修改数据.
 
 ## Contributing
-requirements.txt包含了所有.py开发需要的包, 
+requirements.txt包含了所有.py开发需要的包,
 如果想要使用PyInstaller打包出最小的可执行文件, 请新建一个venv, 并在venv里面打包.
 
 整套项目在mac和win下应当都通用, 有其他系统测试需求可以在群里提或者提Issue.
