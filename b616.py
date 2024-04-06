@@ -1,4 +1,4 @@
-﻿import csv
+import csv
 import time
 import random
 import logging
