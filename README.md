@@ -1,8 +1,7 @@
-requirements.txt包含了所有.py开发需要的包，
-如果要在win/mac下build最小exe请用单独环境install包.
+# B616 Calculator
+根据用户手动管理的excel成绩表生成Arcaea ptt 统计分析的程序.
 
-整套项目在mac和win下应当都通用, 有其他系统测试需求可以在群里提.
-
+## Usage Instructions
 首次使用:
 1. 右键 history_b30.csv, 属性, 打开方式改为'记事本'(或其他plain text editor),
 打开并删除其中的内容(delete this line)
@@ -25,3 +24,9 @@ requirements.txt包含了所有.py开发需要的包，
 更新前的数据放在同目录下的 scores_here_backup.xlsx , 请单独存好并在群里@GK说明GeneratExcel错误.
 
 2. 如果不小心记录了错误/不需要的历史b30数据, 可以直接(用记事本)打开history_b30.csv修改数据.
+
+## Contributing
+requirements.txt包含了所有.py开发需要的包, 
+如果想要使用PyInstaller打包出最小的可执行文件, 请新建一个venv, 并在venv里面打包.
+
+整套项目在mac和win下应当都通用, 有其他系统测试需求可以在群里提或者提Issue.
