@@ -51,7 +51,7 @@ def getConstants(songid):
 
 def getAllFlat():
     songids = list(chartconstant.keys())
-    
+
     matrix = []
     for songid in songids:
         constants = getConstants(songid)
@@ -75,7 +75,7 @@ def getAllFlat():
             song_diff["label"] = diff.upper()
             song_diff["detail"] = constants[i]
             matrix.append(song_diff)
-    
+
     return pd.DataFrame.from_records(
         matrix, index=["songid", "label"]
     ).dropna()
@@ -83,12 +83,12 @@ def getAllFlat():
 
 def make_backup(filename):
     filepath = pathlib.Path(filename)
-    
+
     if not filepath.exists():
         warnings.warn("File not found, not making backup", UserWarning)
         return
     backupname = filepath.with_stem(filepath.stem + "_backup")
-    
+
     if backupname.exists():
         warnings.warn("Overwriting the backup", UserWarning)
         backupname.unlink()
@@ -99,9 +99,9 @@ def main():
     SHEET_NAME = "Sheet1"
     df = getAllFlat()
     df = df[df["detail"] >= 8]
-    
+
     make_backup(FILE_NAME)
-    
+
     try:
         df_in = pd.read_excel(FILE_NAME).set_index(["songid", "label"])
         df_in = df_in[["score"]]
@@ -114,17 +114,17 @@ def main():
 
     print(df_output)
     df_output.reset_index(inplace=True)
-    
+
     df_output["name"] = df_output["title"]
     df_output["name_for_sorting"] = df_output["name"].str.upper()
     df_output["title"] = 'https://arcwiki.mcd.blue/' + df_output["linkName"]
-    
+
     df_output.sort_values(["label", "name_for_sorting"], inplace=True, ascending=[True, True])
-    
+
     OUTPUT_COLUMNS = ["title", "label", "detail", "score", "songid"]
     writer = pd.ExcelWriter(FILE_NAME, engine="xlsxwriter")
     df_output.to_excel(writer, index=False, columns=OUTPUT_COLUMNS, sheet_name=SHEET_NAME)
-    
+
     workbook = writer.book
     worksheet = writer.sheets[SHEET_NAME]
     header_format = workbook.add_format({
@@ -147,7 +147,7 @@ def main():
     worksheet.set_column(4, 4, None, None, {"hidden": True}) # hide songid column
     for col_num, value in enumerate(OUTPUT_COLUMNS):
         worksheet.write(0, col_num, value, header_format)
-    
+
     for difficulty, color in DIFFICULTY_COLORS.items():
         worksheet.conditional_format(
             1, 1, len(df), 1,
@@ -160,7 +160,7 @@ def main():
                 })
             }
         )
-    
+
     writer.close()
 
 if __name__ == "__main__":

@@ -25,7 +25,7 @@ def cust_input():
 
 # 以下为排序和计算模块
 def get_desc_list():
-    invalid_score = []    
+    invalid_score = []
     for row in in_list:
         score = row[3]  # 玩家输入的得分(score)
         detail = row[2] # 谱面的细节定数(detail)
@@ -33,11 +33,11 @@ def get_desc_list():
             invalid_score.append(row)
             continue
         if score >= 10000000: # 很不幸,你的准度并不会在PM后带来任何rating提升, 准度b歇歇吧
-            rating = detail + 2 
+            rating = detail + 2
             row.append(rating)
             continue
         if score >= 9800000:  # 认认真真的推分哥, salute! 请保持下去, 飞升之路就在脚下
-            rating = detail + 1 + (score-9800000)/200000 
+            rating = detail + 1 + (score-9800000)/200000
             row.append(round(rating,4))
             continue
         if score >= 1002237:  # 没有ex还想吃分? ex以下单曲rating低得可怜, 能不能推推
@@ -46,7 +46,7 @@ def get_desc_list():
                 rating = 0
             row.append(round(rating,4))
             continue
-    if len(invalid_score)!= 0: # 如果有出现不合法的score输入: 
+    if len(invalid_score)!= 0: # 如果有出现不合法的score输入:
         for error_row in invalid_score:
             print("Your score of ",error_row," is probably invaild, please check")
         time.sleep(0.5)
@@ -54,7 +54,7 @@ def get_desc_list():
     # 最后根据rating和detail(定数)分别进行逆向排序并返回
     desc_ra_list = sorted(in_list, key=lambda s: s[4], reverse=True) # rating
     desc_dt_list = sorted(in_list, key=lambda s: s[2], reverse=True) # detail
-    return [desc_ra_list,desc_dt_list] 
+    return [desc_ra_list,desc_dt_list]
 
 def get_cust_avg():
     ra_sum = 0
@@ -69,7 +69,7 @@ def get_b30_avg():
     restb30_sum = 0
     for row in desc_ra_list[10:30]:
         restb30_sum += row[4]
-    return [round((b10_sum + restb30_sum)/30, 4) , round((b10_sum*2 + restb30_sum)/40, 4)] 
+    return [round((b10_sum + restb30_sum)/30, 4) , round((b10_sum*2 + restb30_sum)/40, 4)]
     # 后者为 r10=b10时的"b30不变时能达到的最高ptt"的计算公式
 
 def write_history_b30_csv():
@@ -77,7 +77,7 @@ def write_history_b30_csv():
         line = [str(b30_withr10), time.strftime('%Y/%m/%d', time.localtime())]
         writer = csv.writer(f)
         writer.writerow(line)
-        
+
 # 以下为数据分析呈现模块
 def show_desc_ra_list():
     print()
@@ -93,7 +93,7 @@ def show_desc_ra_list():
     else:
         print(f'b{custom_num}底分:',cust_average,' (忽略r10)')
         print(f'---------b{custom_num} finished---------')
-        
+
     if custom_num > 30:
         print()
         for row_num in range(30,custom_num):
@@ -102,7 +102,7 @@ def show_desc_ra_list():
         print(f'b{custom_num}底分:',cust_average,' (忽略r10)')
         print(f'---------b{custom_num} finished---------')
     print()
-    
+
 def suggest_song():
     target_rating = desc_ra_list[30][4] # B30th的单曲rating, 超过这个就能推B30底分
     for i in range(min(len(desc_ra_list),80), 30 , -1): # 从B30th后的至多50行中随机挑选
@@ -110,7 +110,7 @@ def suggest_song():
         # 从30 ~ len(desc_ra_list)或80 每轮上限-1直到最后指定30, 目的是让接近B30th的分数有更高概率被选中
         detail = line[2]
         # 以下是一个比较取巧的判断方式, 通过目标rating和谱面定数之差确认能否推荐(能否满足if/elif)
-        dt_ra_diff = target_rating - detail 
+        dt_ra_diff = target_rating - detail
         if dt_ra_diff >=1 and dt_ra_diff <2 : # 说明需要的score在980w到1000w之间
             target_score = 9800000 + (target_rating -detail -1)*200000
             title = line[0]
@@ -125,23 +125,23 @@ def suggest_song():
             print('只要把',title,'的',label,'难度推到',int(target_score)+1,'以上, 就可以推b30底分了哦~')
             print()
             break
-       
+
 def draw_rt_sc_chart():
     sg_title = []
     x_detail = []
     y_rating = []
-    y1_score = []  
+    y1_score = []
     for row in desc_ra_list[0:custom_num]:
         sg_title.append(row[0])
         x_detail.append(row[2])
         y1_score.append(row[3])
         y_rating.append(row[4])
-    
+
     lx_dt = min(x_detail)
     mx_dt = max(x_detail)
     ptp_xdt = mx_dt-lx_dt
     marksize = max(5 , 10-ptp_xdt-0.03*custom_num ) # 散点曲名标记的字体大小
-    
+
 #  生成 rating/定数 图
     def rating2detail_chart():
         lx_rt = min(y_rating)
@@ -158,7 +158,7 @@ def draw_rt_sc_chart():
         ax.grid(axis= 'y', color = 'r', linestyle = '--', linewidth = 0.4) # 设置图表的外观样式
         if custom_num >= 30: # 生成理论ptt横线,图例自动放在最佳位置
             ax.axhline(y=b30_withr10, lw=1, ls='-.', label=f'不推b30, r10=b10时的理论最高ptt:{b30_withr10}')
-            ax.legend(loc='best') 
+            ax.legend(loc='best')
         ################################################################
 
         ################这一段是对每个点生成曲名文字标注################
@@ -182,7 +182,7 @@ def draw_rt_sc_chart():
             last_labelen = len(label)
         ################################################################
         plt.show()
-        
+
 #  生成 score/定数 图
     def score2detail_chart():
         ly_sc = min(y1_score)
@@ -225,7 +225,7 @@ def draw_rt_sc_chart():
     score2detail_chart()
 
 def draw_history_b30_chart():
-    
+
     with open('history_b30.csv', mode= 'r', newline='') as f:
         reader = csv.reader(f)
         import os
@@ -236,23 +236,23 @@ def draw_history_b30_chart():
                 x_time.append(row[1])
                 y_b30r.append(float(row[0]))
             x_time = [datetime.strptime(d,'%Y/%m/%d').strftime('%Y/%m/%d') for d in x_time]
-        
+
             dot_size = max((50-pow(len(y_b30r),0.5)),10)
             plt.scatter(x_time, y_b30r , s=dot_size)
             plt.tick_params(axis='x',labelrotation=61.6)
             plt.xlabel("年/月/日", fontsize=12)
             plt.ylabel("不推b30, 也就是r10=b10时的PTT", fontsize=11)
             plt.show()
- 
+
 if __name__ == '__main__':
     logging.getLogger('matplotlib.font_manager').setLevel(logging.ERROR)
     in_list = xlsx_tolist() # 读入xlsx文件转换成标准list
     custom_num = cust_input() # 让用户输入想要查看的成绩数量
-    
+
     desc_list = get_desc_list() # 数据有效性检查, 计算各曲rating
     desc_ra_list = desc_list[0] # 根据rating (单曲PTT.)
     desc_dt_list = desc_list[1] # 根据detail (谱面定数)
-    
+
     cust_average = get_cust_avg() # 根据用户输入的成绩数量计算ra均值
     if custom_num >= 30: # 如果输入数量至少为30则:
         b30 = get_b30_avg() # 计算b30
@@ -261,7 +261,7 @@ if __name__ == '__main__':
         if input("是否要用本次的数据更新历史b30数据(Y/N): ").upper() == "Y": # 如果用户确认:
             write_history_b30_csv() #则把本次的 b30_withr10 加入历史记录, 用来生成变化图像
         print()
-    
+
     show_desc_ra_list() # 展示根据ra排序的分数列表
     if len(desc_ra_list) > 30: # 如果有超过30行数据则:
         suggest_song() # 尝试给用户推荐一个能替换b30th的谱面
