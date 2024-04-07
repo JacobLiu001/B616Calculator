@@ -3,3 +3,5 @@ openpyxl~=3.1.2
 pandas~=2.2.1
 requests~=2.31.0
 XlsxWriter~=3.2.0
+black
+pre-commit
