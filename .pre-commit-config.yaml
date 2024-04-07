@@ -3,11 +3,13 @@ repos:
     rev: v4.5.0
     hooks:
     -   id: check-yaml
-    -   id: end-of-file-fixer
-    -   id: trailing-whitespace
-    -   id: fix-byte-order-marker
-    -   id: mixed-line-ending
+    -   id: end-of-file-fixer  # always ensure a single newline at the end of a file
+    -   id: trailing-whitespace  # always remove trailing whitespace
+    -   id: fix-byte-order-marker  # always remove UTF-8 BOM
+    -   id: mixed-line-ending  # always convert to LF
         args: ["--fix=lf"]
+    -   id: no-commit-to-branch # prevent commits to main branch
+        args: ["--branch", "main"]
 -   repo: https://github.com/psf/black
     rev: 24.3.0
     hooks:
