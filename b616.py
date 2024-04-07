@@ -37,20 +37,24 @@ def get_desc_list():
     for row in in_list:
         score = row[3]  # 玩家输入的得分(score)
         detail = row[2]  # 谱面的细节定数(detail)
-        if score >= 10002237 or score < 1002237: # 不合法的score(2237为1far时score不超过10M的物量阈值）
+        if score >= 10002237 or score < 1002237:
+        # 不合法的score(2237为1far时score不超过10M的物量阈值）
             invalid_score.append(row)
             continue
-        if  score >= 10000000: # 很不幸,你的准度并不会在PM后带来任何rating提升, 准度b歇歇吧
+        if  score >= 10000000:
+        # 很不幸,你的准度并不会在PM后带来任何rating提升, 准度b歇歇吧
             rating = detail + 2
             row.append(rating)
             continue
-        if score >= 9800000:  # 认认真真的推分哥, salute! 请保持下去, 飞升之路就在脚下
+        if score >= 9800000:
+        # 认认真真的推分哥, salute! 请保持下去, 飞升之路就在脚下
             rating = detail + 1 + (score - 9800000) / 200000
             row.append(round(rating, 4))
             continue
-        if score >= 1002237:  # 没有ex还想吃分? ex以下单曲rating低得可怜, 能不能推推
+        if score >= 1002237:
+        # 没有ex还想吃分? ex以下单曲rating低得可怜, 能不能推推
             rating = detail + (score - 9500000) / 300000
-            if rating < 0:  # 理论上是真的有可能出现的, 我猜应该是你家猫打的(
+            if rating < 0: # 理论上是真的有可能出现的, 我猜应该是你家猫打的(
                 rating = 0
             row.append(round(rating, 4))
             continue
@@ -82,7 +86,7 @@ def get_b30_avg():
         restb30_sum += row[4]
     return [
         round((b10_sum + restb30_sum) / 30, 4), # 纯b30底分
-        round((b10_sum * 2 + restb30_sum) / 40, 4), # r10=b10时的"b30不变时能达到的最高ptt"的计算公式
+        round((b10_sum * 2 + restb30_sum) / 40, 4), # r10=b10时的最高ptt计算公式
     ]
 
 
