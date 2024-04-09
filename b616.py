@@ -12,7 +12,7 @@ plt.rc(
 )  # 设定制表使用的字库
 
 
-# 以下为读取本地数据和用户输入模块
+# 以下为读取本地数据和用户自定义模块
 def xlsx_tolist():
     xlsx = pd.read_excel(r"put_your_score_in_here.xlsx")
     xlsx = xlsx[["title", "label", "detail", "score"]]
@@ -21,14 +21,27 @@ def xlsx_tolist():
 
 
 def cust_input():
-    custom_num = int(
-        input("Hi, B616 here, 请输入显示/计算的成绩行数 e.g.30: ")
-    )  # 让用户决定需要查看的行数
+    custom_num = int(input("Hi, B616 here, 请输入显示/计算的成绩行数 e.g.30: "))
     if custom_num <= 0 or custom_num > len(in_list):
         print("输入量不符合数据量, 重来")
         time.sleep(0.5)
         exit()
     return custom_num
+
+
+def read_ptt_history_csv():
+    with open("ptt_history.csv", mode="r", newline="") as f:
+        reader = csv.reader(f)
+
+        x_time = []  # x-axis 年月日时间
+        y_realptt = []  # y-axis 用户输入的实际ptt
+        y_maxiptt = []  # y-axis r10=b10时的理论最高ptt
+        for row in reader:
+            x_time.append(row[0])
+            y_realptt.append(float(row[1]))
+            y_maxiptt.append(float(row[2]))
+
+    return x_time, y_realptt, y_maxiptt
 
 
 # 以下为排序和计算模块
@@ -63,10 +76,10 @@ def get_desc_list():
         time.sleep(0.5)
         input("Press enter to continue")
     # 最后根据rating和detail(定数)分别进行逆向排序并返回
-    return [
+    return (
         sorted(in_list, key=lambda s: s[4], reverse=True),  # rating
         sorted(in_list, key=lambda s: s[2], reverse=True),  # detail
-    ]
+    )
 
 
 def get_cust_avg():
@@ -83,15 +96,19 @@ def get_b30_avg():
     restb30_sum = 0
     for row in desc_ra_list[10:30]:
         restb30_sum += row[4]
-    return [
+    return (
         round((b10_sum + restb30_sum) / 30, 4),  # 纯b30底分
         round((b10_sum * 2 + restb30_sum) / 40, 4),  # r10=b10时的最高ptt计算公式
-    ]
+    )
 
 
-def write_history_b30_csv():
-    with open("history_b30.csv", mode="a", newline="") as f:
-        line = [str(b30_withr10), time.strftime("%Y/%m/%d", time.localtime())]
+def write_ptt_history_csv():
+    with open("ptt_history.csv", mode="a", newline="") as f:
+        line = [
+            time.strftime("%Y/%m/%d", time.localtime()),
+            str(real_ptt_input),
+            str(b30_withr10),
+        ]
         writer = csv.writer(f)
         writer.writerow(line)
 
@@ -313,50 +330,47 @@ def draw_rt_sc_chart():
 
 
 def draw_history_b30_chart():
-    with open("history_b30.csv", mode="r", newline="") as f:
-        reader = csv.reader(f)
+    line = read_ptt_history_csv()  # 打开csv并读取用户过去填入的数据
+    x_time = line[0]
+    if len(x_time) == 0:
+        print("ptt_history数据为空, 跳过生成b30折线图")
+        time.sleep(0.5)
+        return
+    x_time = [datetime.strptime(d, "%Y/%m/%d").strftime("%Y/%m/%d") for d in x_time]
+    y_realptt = line[1]
+    y_maxiptt = line[2]
 
-        x_time = []  # x-axis 年月日时间
-        y_b30r = []  # y-axis 带有理论最高r10的b30
-        for row in reader:
-            x_time.append(row[1])
-            y_b30r.append(float(row[0]))
-
-        if len(x_time) == 0:
-            print("历史b30数据为空, 跳过生成b30折线图")
-            return
-
-        x_time = [datetime.strptime(d, "%Y/%m/%d").strftime("%Y/%m/%d") for d in x_time]
-
-        dot_size = max((50 - pow(len(y_b30r), 0.5)), 10)
-        plt.scatter(x_time, y_b30r, s=dot_size)
-        plt.tick_params(axis="x", labelrotation=61.6)
-        plt.xlabel("年/月/日", fontsize=12)
-        plt.ylabel("不推b30, 即r10=b10时的PTT", fontsize=11)
-        plt.show()
+    dot_size = max((50 - pow(len(y_maxiptt), 0.5)), 10)
+    plt.scatter(x_time, y_realptt, s=dot_size)
+    plt.scatter(x_time, y_maxiptt, s=dot_size)
+    plt.tick_params(axis="x", labelrotation=61.6)
+    plt.xlabel("年/月/日", fontsize=12)
+    plt.ylabel("ptt", fontsize=12)
+    plt.legend(["实际输入ptt", "理论最高ptt"], loc="best")
+    plt.show()
 
 
 if __name__ == "__main__":
+
     logging.getLogger("matplotlib.font_manager").setLevel(
         logging.ERROR
     )  # 忽略字体Error级以下的报错
+
     in_list = xlsx_tolist()  # 读入xlsx文件转换成标准list
     custom_num = cust_input()  # 让用户输入想要查看的成绩数量
 
     desc_list = get_desc_list()  # 数据有效性检查, 计算各曲rating
-    desc_ra_list = desc_list[0]  # 根据rating排序 (单曲ptt)
-    desc_dt_list = desc_list[1]  # 根据detail排序 (谱面定数)
+    desc_ra_list = desc_list[0]  # rating倒序list (单曲ptt)
+    desc_dt_list = desc_list[1]  # detail倒序list (谱面定数)
 
     cust_average = get_cust_avg()  # 根据用户输入的成绩数量计算rating均值
     if custom_num >= 30:  # 如果用户输入数量至少为30则:
-        b30 = get_b30_avg()  # 计算b30
-        b30_only = b30[0]  # 仅b30的平均底分
+        real_ptt_input = float(input("请输入当前您的实际ptt(例 12.47): "))
+        b30 = get_b30_avg()  # 计算b30并return以下两个数据:
+        b30_only = b30[0]  # 仅考虑b30底分的ptt
         b30_withr10 = b30[1]  # r10=b10时的理论最高ptt
-        if (
-            input("是否要用本次的数据更新历史b30数据(Y/N): ").upper()
-            == "Y"  # y和Y都会确认
-        ):  # 如果用户确认:
-            write_history_b30_csv()  # 则把本次的 b30_withr10 加入历史记录, 用来生成变化图像
+        if input("是否要更新历史ptt数据(Y/N): ").upper() == "Y":  # by和Y都会确认
+            write_ptt_history_csv()  # 把 real_ptt_input和b30_withr10 存档, 用来生成变化图像
         print()
 
     show_desc_ra_list()  # 展示根据rating排序的分数列表
