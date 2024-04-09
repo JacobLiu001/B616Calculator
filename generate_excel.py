@@ -28,57 +28,45 @@ songlist = preprocess_songlist(songlist)
 transition = requests.get(URLTEMPLATE.format("Template:Transition.json")).json()
 
 
-def disambiguateName(name, songid):
+def disambiguate_name(name: str, songid: str) -> str:
     if name in transition["sameName"]:
         name = transition["sameName"][name][songid]
     return name
 
 
-def getLinkName(songid):
+def get_link_name(songid: str) -> str:
     name = songlist[songid]["title_localized"]["en"]
     # convert to display name if possible
     name = transition["songNameToDisplayName"].get(name, name)
-    return disambiguateName(name, songid)
+    return disambiguate_name(name, songid)
 
 
-def getConstants(songid):
-    raw = chartconstant[songid]
-    constants = [entry.get("constant", pd.NA) if entry else pd.NA for entry in raw]
-    for _ in range(5 - len(constants)):
-        constants.append(pd.NA)
-    return constants
-
-
-def getAllFlat():
-    songids = list(chartconstant.keys())
-
-    matrix = []
-    for songid in songids:
-        constants = getConstants(songid)
-        song = {
-            "songid": songid,
-            "linkName": getLinkName(songid),
-            "title": songlist[songid]["title_localized"][
-                "en"
-            ],  # will get disambiguated later
-        }
-        for i, diff in enumerate(DIFFICULTIES):
-            song_diff = song.copy()
-            # I hate Lowiro for this stupid json structure
-            # try to see if there's a difficulty-specific title
-            diffs = songlist[songid]["difficulties"]
-            diffclasses = [dff["ratingClass"] for dff in diffs]
-            if i not in diffclasses:
+def get_all_entries() -> pd.DataFrame:
+    rows = []
+    for songid, song_info in songlist.items():
+        for difficulty_record in song_info["difficulties"]:
+            if difficulty_record["rating"] == 0:
+                # Last | Eternity has three 0-rated non-existent charts
                 continue
-            diffsInd = diffclasses.index(i)
-            if "title_localized" in diffs[diffsInd]:
-                song_diff["title"] = diffs[diffsInd]["title_localized"]["en"]
-            song_diff["title"] = disambiguateName(song_diff["title"], songid)
-            song_diff["label"] = diff.upper()
-            song_diff["detail"] = constants[i]
-            matrix.append(song_diff)
+            if difficulty_record.get("hidden_until", "never") == "always":
+                # Skip other hidden charts for future-proofing
+                continue
+            ratingClass: int = difficulty_record["ratingClass"]
+            title: str = song_info["title_localized"]["en"]
+            if "title_localized" in difficulty_record:
+                # If the difficulty has a different name, use that
+                title = difficulty_record["title_localized"]["en"]
+            rows.append(
+                {
+                    "songid": songid,
+                    "label": DIFFICULTIES[ratingClass],
+                    "title": disambiguate_name(title, songid),
+                    "detail": chartconstant[songid][ratingClass]["constant"],
+                    "linkName": get_link_name(songid),
+                }
+            )
 
-    return pd.DataFrame.from_records(matrix, index=["songid", "label"]).dropna()
+    return pd.DataFrame.from_records(rows, index=["songid", "label"]).dropna()
 
 
 def make_backup(filename):
@@ -98,11 +86,12 @@ def make_backup(filename):
 def main():
     FILE_NAME = "put_your_score_in_here.xlsx"
     SHEET_NAME = "Sheet1"
-    df = getAllFlat()
+    df = get_all_entries()
     df = df[df["detail"] >= 8]
 
     make_backup(FILE_NAME)
 
+    # Read the old scores and merge them
     try:
         df_in = pd.read_excel(FILE_NAME).set_index(["songid", "label"])
         df_in = df_in[["score"]]
@@ -115,11 +104,12 @@ def main():
         )
         print(e)
 
-    print(df_output)
     df_output.reset_index(inplace=True)
 
     df_output["name"] = df_output["title"]
     df_output["name_for_sorting"] = df_output["name"].str.upper()
+    # Xlsxwriter hackery: write links first, then write the text
+    # And it will still point to the correct link
     df_output["title"] = "https://arcwiki.mcd.blue/" + df_output["linkName"]
 
     df_output.sort_values(
@@ -147,24 +137,28 @@ def main():
     base_format = workbook.add_format(
         {"font_name": "calibri", "valign": "top", "align": "center"}
     )
+    # Write the names over the links; this preserves the link
     worksheet.write_column(1, 0, df_output["name"], workbook.get_default_url_format())
-    worksheet.set_column(0, 0, 50)
-    worksheet.set_column(1, 2, 8, base_format)
-    worksheet.set_column(3, 3, 15, base_format)
+    worksheet.set_column(0, 0, 50)  # Names (links)
+    worksheet.set_column(1, 2, 8, base_format)  # Difficulty label and detail constant
+    worksheet.set_column(3, 3, 15, base_format)  # Score, wide since max ~1e7
     worksheet.set_column(4, 4, None, None, {"hidden": True})  # hide songid column
+
+    # Format the header row
     for col_num, value in enumerate(OUTPUT_COLUMNS):
         worksheet.write(0, col_num, value, header_format)
 
+    # Conditional coloring for difficulty
     for difficulty, color in DIFFICULTY_COLORS.items():
         worksheet.conditional_format(
-            1,
-            1,
-            len(df),
-            1,
+            1,  # Row 2
+            1,  # Column B
+            len(df),  # Last row
+            1,  # Column B
             {
                 "type": "cell",
                 "criteria": "equal to",
-                "value": f'"{difficulty.upper()}"',
+                "value": f'"{difficulty}"',
                 "format": workbook.add_format({"bg_color": color}),
             },
         )
