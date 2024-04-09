@@ -1,5 +1,6 @@
 .vscode/
 put_your_score_in_here.xlsx
+put_your_score_in_here_backup.xlsx
 
 # The rest is taken from https://github.com/github/gitignore/blob/main/Python.gitignore
 # Byte-compiled / optimized / DLL files
