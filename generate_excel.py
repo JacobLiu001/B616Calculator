@@ -41,6 +41,15 @@ def get_link_name(songid: str) -> str:
     return disambiguate_name(name, songid)
 
 
+def get_detail_for_sorting(difficulty_record) -> float:
+    base_difficulty = float(difficulty_record["rating"])
+    rating_plus = difficulty_record.get("ratingPlus", False)
+    if rating_plus:
+        # just for sorting purposes, such that 9 < 9+ < 10
+        base_difficulty += 0.5
+    return base_difficulty
+
+
 def get_all_entries() -> pd.DataFrame:
     rows = []
     for songid, song_info in songlist.items():
@@ -63,6 +72,7 @@ def get_all_entries() -> pd.DataFrame:
                     "title": disambiguate_name(title, songid),
                     "detail": chartconstant[songid][ratingClass]["constant"],
                     "linkName": get_link_name(songid),
+                    "detail_for_sorting": get_detail_for_sorting(difficulty_record),
                 }
             )
 
@@ -113,7 +123,9 @@ def main():
     df_output["title"] = "https://arcwiki.mcd.blue/" + df_output["linkName"]
 
     df_output.sort_values(
-        ["label", "name_for_sorting"], inplace=True, ascending=[True, True]
+        ["label", "detail_for_sorting", "name_for_sorting"],
+        inplace=True,
+        ascending=[True, False, True],
     )
 
     OUTPUT_COLUMNS = ["title", "label", "detail", "score", "songid"]
