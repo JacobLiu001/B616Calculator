@@ -14,7 +14,7 @@ plt.rc(
 
 # 以下为读取本地数据和用户自定义模块
 def xlsx_tolist():
-    xlsx = pd.read_excel(r"put_your_score_in_here.xlsx")
+    xlsx = pd.read_excel(r"put_your_score_here.xlsx")
     xlsx = xlsx[["title", "label", "detail", "score"]]
     xlsx.dropna(inplace=True)  # 删除未填入分数的行 credits to GK
     return xlsx.values.tolist()
@@ -61,19 +61,19 @@ def get_desc_list():
             continue
         if score >= 9800000:
             # 认认真真的推分哥, salute! 请保持下去, 飞升之路就在脚下
-            rating = detail + 1 + (score - 9800000) / 200000
-            row.append(round(rating, 4))
+            rating = detail + (score-9800000)/200000 + 1
+            row.append(rating)
             continue
         if score >= 1002237:
             # 没有ex还想吃分? ex以下单曲rating低得可怜, 能不能推推
-            rating = detail + (score - 9500000) / 300000
-            rating = max(rating, 0)  # 理论上是真的有可能出现的, 我猜应该是你家猫打的 (
-            row.append(round(rating, 4))
+            rating = detail + (score-9500000)/300000
+            rating = max(rating, 0)  # 0单曲ra真的有可能出现的, 我猜是你家猫打的(
+            row.append(rating)
             continue
     if len(invalid_score) != 0:  # 如果有出现不合法的score输入:
         for error_row in invalid_score:
-            print("Your score of ", error_row, " is probably invaild, please check")
-        time.sleep(0.5)
+            print("Your score of ", error_row[0], " maybe invaild, please check in xlsx.")
+        time.sleep(1)
         input("Press enter to continue")
     # 最后根据rating和detail(定数)分别进行逆向排序并返回
     return (
@@ -334,7 +334,7 @@ def draw_history_b30_chart():
     x_time = line[0]
     if len(x_time) == 0:
         print("ptt_history数据为空, 跳过生成b30折线图")
-        time.sleep(0.5)
+        time.sleep(1)
         return
     x_time = [datetime.strptime(d, "%Y/%m/%d").strftime("%Y/%m/%d") for d in x_time]
     y_realptt = line[1]
