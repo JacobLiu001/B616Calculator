@@ -13,6 +13,8 @@ plt.rc(
 
 
 # 以下为读取本地数据和用户自定义模块
+
+
 def xlsx_tolist():
     xlsx = pd.read_excel(r"put_your_score_here.xlsx")
     xlsx = xlsx[["title", "label", "detail", "score"]]
@@ -47,6 +49,8 @@ def read_ptt_history_csv():
 
 
 # 以下为排序和计算模块
+
+
 def get_desc_list():
     invalid_score = []
     for row in in_list:
@@ -74,7 +78,13 @@ def get_desc_list():
             continue
     if len(invalid_score) != 0:  # 如果有出现不合法的score输入:
         for error_row in invalid_score:
-            print("Your score of ", error_row[0], " maybe invaild, please check xlsx.")
+            print(
+                "Your score of",
+                error_row[0],
+                "is",
+                int(error_row[3]),
+                ", which might be invaild, please check xlsx then run again",
+            )
         time.sleep(1)
         input("Press enter to continue")
     # 最后根据rating和detail(定数)分别进行逆向排序并返回
