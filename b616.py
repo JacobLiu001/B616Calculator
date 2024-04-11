@@ -12,7 +12,7 @@ plt.rc(
 )  # 设定制表使用的字库
 
 
-# 以下为读取本地数据和用户自定义模块
+# 以下为读取本地数据和用户自定义函数
 
 
 def xlsx_tolist():
@@ -48,7 +48,7 @@ def read_ptt_history_csv():
     return x_time, y_realptt, y_baseptt, y_maxiptt
 
 
-# 以下为排序和计算模块
+# 以下为排序和计算函数
 
 
 def get_desc_list():
@@ -57,7 +57,7 @@ def get_desc_list():
         score = row[3]  # 玩家输入的得分(score)
         detail = row[2]  # 谱面的细节定数(detail)
         if score >= 10002237 or score < 1002237:
-            # 不合法的score(2237为1far时score不超过10M的物量阈值）
+            # 不合法的score(2237为1far时score不超过10M的物量阈值)
             invalid_score.append(row)
             continue
         if score >= 10000000:
@@ -82,16 +82,13 @@ def get_desc_list():
                 "Your score of",
                 error_row[0],
                 "is",
-                int(error_row[3]),
+                error_row[3],
                 ", which might be invaild, please check xlsx then run again",
             )
         time.sleep(1)
         input("Press enter to continue")
-    # 最后根据rating和detail(定数)分别进行逆向排序并返回
-    return (
-        sorted(in_list, key=lambda s: s[4], reverse=True),  # rating
-        sorted(in_list, key=lambda s: s[2], reverse=True),  # detail
-    )
+    # 最后根据rating逆向排序并返回
+    return sorted(in_list, key=lambda s: s[4], reverse=True)  # rating
 
 
 def get_cust_avg():
@@ -126,46 +123,32 @@ def write_ptt_history_csv():
         writer.writerow(line)
 
 
-# 以下为数据分析呈现模块
+# 以下为数据分析呈现函数
 
 
 def show_desc_ra_list():
     print()
 
-    def print_rows(desc_ra_list):
-        print(
-            desc_ra_list[row_num][0],
-            desc_ra_list[row_num][1],
-            desc_ra_list[row_num][2],
-            " score:",
-            int(desc_ra_list[row_num][3]),
-            " rating:",
-            f"{desc_ra_list[row_num][4]:.4f}",
-        )
+    def print_row(row):
+        print(f"{row[0]} {row[1]} {row[2]} score: {int(row[3])} rating: {row[4]:.4f}")
 
-    row_num = 0
-    while (
-        row_num < 30 and row_num < custom_num
-    ):  # 没到B30th也没到设定的custom_num上限前
-        print_rows(desc_ra_list)
-        row_num += 1
+    rows = desc_ra_list[:custom_num]
+    for row in rows[:30]:
+        print_row(row)
     print()
-    if row_num == 30:
+
+    if custom_num_over30:
         print("b30底分:", f"{b30_only:.4f}", " (忽略r10)")
-        print("不推b30, 也就是r10=b10时的理论最高ptt: ", f"{b30_withr10:.4f}")
+        print("r10=b10时的理论最高ptt: ", f"{b30_withr10:.4f}")
         print("---------b30 finished---------")
-    else:  # 指定数据量小于30的情况
-        print(f"b{custom_num}底分:", f"{cust_average:.4f}", " (忽略r10)")
-        print(f"---------b{custom_num} finished---------")
+        print()
 
-    if custom_num > 30:
-        print()
-        for row_num in range(30, custom_num):
-            print_rows(desc_ra_list)
-        print()
+    for row in rows[30:]:
+        print_row(row)
+
+    if custom_num != 30:
         print(f"b{custom_num}底分:", f"{cust_average:.4f}", " (忽略r10)")
         print(f"---------b{custom_num} finished---------")
-    print()
 
 
 def suggest_song():
@@ -200,10 +183,10 @@ def suggest_song():
 
 
 def draw_rt_sc_chart():
-    sg_title = []  # song title(曲名)
-    x_detail = []  # x-axis detail(定数）
-    y_rating = []  # y-axis rating(单曲ptt）
-    y1_score = []  # y-axis score(单曲得分）
+    sg_title = []  # song title（曲名）
+    x_detail = []  # x-axis detail（定数）
+    y_rating = []  # y-axis rating（单曲ptt）
+    y1_score = []  # y-axis score（单曲得分）
     for row in desc_ra_list[0:custom_num]:
         sg_title.append(row[0])
         x_detail.append(row[2])
@@ -233,16 +216,16 @@ def draw_rt_sc_chart():
         )  # 设置刻度标记的样式
         ax.xaxis.set_major_locator(
             ticker.MultipleLocator(0.1)
-        )  # tick_spacing = 0.1: 横轴标注以0.1为单位步进 (即arcaea官方定数的最小单位)
+        )  # : 横轴标注以0.1为单位步进 (即arcaea官方定数的最小单位)
         ax.grid(
             axis="y", color="r", linestyle="--", linewidth=0.4
         )  # 设置图表的外观样式
-        if custom_num >= 30:  # 生成理论ptt横线,图例自动放在最佳位置
+        if custom_num_over30:  # 生成理论ptt横线,图例自动放在最佳位置
             ax.axhline(
                 y=b30_withr10,
                 linewidth=1,  # linewidth
                 linestyle="-.",  # linestyle
-                label=f"不推b30, r10=b10时的理论最高ptt:{b30_withr10:.4f}",
+                label=f"r10=b10时的理论最高ptt:{b30_withr10:.4f}",
             )  # 图例
             ax.legend(loc="best")  # 自动调整图例到最佳位置
         ################################################################
@@ -387,12 +370,10 @@ if __name__ == "__main__":
     in_list = xlsx_tolist()  # 读入xlsx文件转换成标准list
     custom_num = cust_input()  # 让用户输入想要查看的成绩数量
 
-    desc_list = get_desc_list()  # 数据有效性检查, 计算各曲rating
-    desc_ra_list = desc_list[0]  # rating倒序list (单曲ptt)
-    desc_dt_list = desc_list[1]  # detail倒序list (谱面定数)
-
+    desc_ra_list = get_desc_list()  # 数据有效性检查, 计算rating返回倒序list
     cust_average = get_cust_avg()  # 根据用户输入的成绩数量计算rating均值
-    if custom_num >= 30:  # 如果用户输入数量至少为30则:
+    if custom_num >= 30:
+        custom_num_over30 = True  # 如果用户输入数量至少为30则:
         b30_pack = get_b30_avg()  # 计算b30并return以下两个数据:
         b30_only = b30_pack[0]  # 仅考虑b30底分的ptt
         b30_withr10 = b30_pack[1]  # r10=b10时的理论最高ptt
