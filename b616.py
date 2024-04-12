@@ -12,9 +12,11 @@ plt.rc(
 )  # 设定制表使用的字库
 
 
-# 以下为读取本地数据和用户自定义模块
+# 以下为读取本地数据和用户自定义函数
+
+
 def xlsx_tolist():
-    xlsx = pd.read_excel(r"put_your_score_in_here.xlsx")
+    xlsx = pd.read_excel(r"put_your_score_here.xlsx")
     xlsx = xlsx[["title", "label", "detail", "score"]]
     xlsx.dropna(inplace=True)  # 删除未填入分数的行 credits to GK
     return xlsx.values.tolist()
@@ -35,23 +37,27 @@ def read_ptt_history_csv():
 
         x_time = []  # x-axis 年月日时间
         y_realptt = []  # y-axis 用户输入的实际ptt
+        y_baseptt = []  # y-axis 仅b30底分的ptt
         y_maxiptt = []  # y-axis r10=b10时的理论最高ptt
         for row in reader:
             x_time.append(row[0])
             y_realptt.append(float(row[1]))
-            y_maxiptt.append(float(row[2]))
+            y_baseptt.append(float(row[2]))
+            y_maxiptt.append(float(row[3]))
 
-    return x_time, y_realptt, y_maxiptt
+    return x_time, y_realptt, y_baseptt, y_maxiptt
 
 
-# 以下为排序和计算模块
+# 以下为排序和计算函数
+
+
 def get_desc_list():
     invalid_score = []
     for row in in_list:
         score = row[3]  # 玩家输入的得分(score)
         detail = row[2]  # 谱面的细节定数(detail)
         if score >= 10002237 or score < 1002237:
-            # 不合法的score(2237为1far时score不超过10M的物量阈值）
+            # 不合法的score(2237为1far时score不超过10M的物量阈值)
             invalid_score.append(row)
             continue
         if score >= 10000000:
@@ -61,44 +67,47 @@ def get_desc_list():
             continue
         if score >= 9800000:
             # 认认真真的推分哥, salute! 请保持下去, 飞升之路就在脚下
-            rating = detail + 1 + (score - 9800000) / 200000
-            row.append(round(rating, 4))
+            rating = detail + (score - 9800000) / 200000 + 1
+            row.append(rating)
             continue
         if score >= 1002237:
             # 没有ex还想吃分? ex以下单曲rating低得可怜, 能不能推推
             rating = detail + (score - 9500000) / 300000
-            rating = max(rating, 0)  # 理论上是真的有可能出现的, 我猜应该是你家猫打的 (
-            row.append(round(rating, 4))
+            rating = max(rating, 0)  # 0单曲ra真的有可能出现的, 我猜是你家猫打的(
+            row.append(rating)
             continue
     if len(invalid_score) != 0:  # 如果有出现不合法的score输入:
         for error_row in invalid_score:
-            print("Your score of ", error_row, " is probably invaild, please check")
-        time.sleep(0.5)
+            print(
+                "Your score of",
+                error_row[0],
+                "is",
+                error_row[3],
+                ", which might be invalid, please check xlsx then run again",
+            )
+        time.sleep(1)
         input("Press enter to continue")
-    # 最后根据rating和detail(定数)分别进行逆向排序并返回
-    return (
-        sorted(in_list, key=lambda s: s[4], reverse=True),  # rating
-        sorted(in_list, key=lambda s: s[2], reverse=True),  # detail
-    )
+    # 最后根据rating逆向排序并返回
+    return sorted(in_list, key=lambda s: s[4], reverse=True)  # rating
 
 
 def get_cust_avg():
     ra_sum = 0
     for row in desc_ra_list[0:custom_num]:
         ra_sum += row[4]
-    return round((ra_sum / custom_num), 4)
+    return ra_sum / custom_num
 
 
 def get_b30_avg():
     b10_sum = 0
     for row in desc_ra_list[0:10]:
         b10_sum += row[4]  # row[4]为上个方法append的单曲rating值
-    restb30_sum = 0
+    restb20_sum = 0
     for row in desc_ra_list[10:30]:
-        restb30_sum += row[4]
+        restb20_sum += row[4]
     return (
-        round((b10_sum + restb30_sum) / 30, 4),  # 纯b30底分
-        round((b10_sum * 2 + restb30_sum) / 40, 4),  # r10=b10时的最高ptt计算公式
+        (restb20_sum + b10_sum) / 30,  # 纯b30底分
+        (restb20_sum + b10_sum * 2) / 40,  # r10=b10时的最高ptt计算公式
     )
 
 
@@ -106,48 +115,46 @@ def write_ptt_history_csv():
     with open("ptt_history.csv", mode="a", newline="") as f:
         line = [
             time.strftime("%Y/%m/%d", time.localtime()),
-            str(real_ptt_input),
+            real_ptt_input,
+            str(b30_only),
             str(b30_withr10),
         ]
         writer = csv.writer(f)
         writer.writerow(line)
 
 
-# 以下为数据分析呈现模块
+# 以下为数据分析呈现函数
 def show_desc_ra_list():
     print()
-    row_num = 0
-    while (
-        row_num < 30 and row_num < custom_num
-    ):  # 没到B30th也没到设定的custom_num上限前
-        print(desc_ra_list[row_num])
-        row_num += 1
-    print()
-    if row_num == 30:
-        print("b30底分:", b30_only, " (忽略r10)")
-        print("不推b30, 也就是r10=b10时的理论最高ptt: ", b30_withr10)
-        print("---------b30 finished---------")
-    else:  # 指定数据量小于30的情况
-        print(f"b{custom_num}底分:", cust_average, " (忽略r10)")
-        print(f"---------b{custom_num} finished---------")
 
-    if custom_num > 30:
-        print()
-        for row_num in range(30, custom_num):
-            print(desc_ra_list[row_num])
-        print()
-        print(f"b{custom_num}底分:", cust_average, " (忽略r10)")
-        print(f"---------b{custom_num} finished---------")
+    def print_row(row):
+        print(f"{row[0]} {row[1]} {row[2]} score: {int(row[3])} rating: {row[4]:.4f}")
+
+    rows = desc_ra_list[:custom_num]
+    for row in rows[:30]:  # Print at most 30 rows
+        print_row(row)
     print()
+
+    if custom_num_over30:  # If >= 30 rows, print b30 info
+        print(f"b30底分: {b30_only:.4f} (忽略r10)")
+        print(f"r10=b10时的理论最高ptt: {b30_withr10:.4f}")
+        print("---------b30 finished---------")
+        print()
+
+    for row in rows[30:]:  # Print the rest
+        print_row(row)
+
+    if custom_num != 30:  # No need for repeated b30
+        print(f"b{custom_num}底分: {cust_average:.4f} (忽略r10)")
+        print(f"---------b{custom_num} finished---------")
 
 
 def suggest_song():
     target_rating = desc_ra_list[30][4]  # B30th的单曲rating, 超过这个就能推B30底分
-    for i in range(min(len(desc_ra_list), 80), 30, -1):  # 从B30th后的至多50行中随机挑选
-        line = desc_ra_list[
-            random.randint(30, i - 1)
-        ]  # line=randint的范围会随着循环逐渐减少
-        # 随机范围从30到len(desc_ra_list)或80, 每轮上限-1直到最后指定30, 所以接近B30th的分数有更高概率被选中
+    for i in range(min(len(desc_ra_list), 80), 30, -1):
+        line = desc_ra_list[random.randint(30, i - 1)]
+        # line=randint的范围会随着循环逐渐从30到min(len(desc_ra_list), 80)
+        # 每轮上限-1直到最后指定30, 所以接近B30th的分数有更高概率被选中
         detail = line[2]
         # 以下是一个比较取巧的判断方式, 通过目标rating和谱面定数之差确认能否推荐(能否满足if/elif)
         dt_ra_diff = target_rating - detail
@@ -174,10 +181,10 @@ def suggest_song():
 
 
 def draw_rt_sc_chart():
-    sg_title = []  # song title(曲名)
-    x_detail = []  # x-axis detail(定数）
-    y_rating = []  # y-axis rating(单曲ptt）
-    y1_score = []  # y-axis score(单曲得分）
+    sg_title = []  # song title（曲名）
+    x_detail = []  # x-axis detail（定数）
+    y_rating = []  # y-axis rating（单曲ptt）
+    y1_score = []  # y-axis score（单曲得分）
     for row in desc_ra_list[0:custom_num]:
         sg_title.append(row[0])
         x_detail.append(row[2])
@@ -207,16 +214,16 @@ def draw_rt_sc_chart():
         )  # 设置刻度标记的样式
         ax.xaxis.set_major_locator(
             ticker.MultipleLocator(0.1)
-        )  # tick_spacing = 0.1: 横轴标注以0.1为单位步进 (即arcaea官方定数的最小单位)
+        )  # : 横轴标注以0.1为单位步进 (即arcaea官方定数的最小单位)
         ax.grid(
             axis="y", color="r", linestyle="--", linewidth=0.4
         )  # 设置图表的外观样式
-        if custom_num >= 30:  # 生成理论ptt横线,图例自动放在最佳位置
+        if custom_num_over30:  # 生成理论ptt横线,图例自动放在最佳位置
             ax.axhline(
                 y=b30_withr10,
                 linewidth=1,  # linewidth
                 linestyle="-.",  # linestyle
-                label=f"不推b30, r10=b10时的理论最高ptt:{b30_withr10}",
+                label=f"r10=b10时的理论最高ptt:{b30_withr10:.4f}",
             )  # 图例
             ax.legend(loc="best")  # 自动调整图例到最佳位置
         ################################################################
@@ -334,19 +341,21 @@ def draw_history_b30_chart():
     x_time = line[0]
     if len(x_time) == 0:
         print("ptt_history数据为空, 跳过生成b30折线图")
-        time.sleep(0.5)
+        time.sleep(1)
         return
-    x_time = [datetime.strptime(d, "%Y/%m/%d").strftime("%Y/%m/%d") for d in x_time]
+    x_time = [datetime.strptime(d, "%Y-%m-%d") for d in x_time]
+    dot_size = max((50 - pow(len(x_time), 0.5)), 10)
+
     y_realptt = line[1]
     y_maxiptt = line[2]
-
-    dot_size = max((50 - pow(len(y_maxiptt), 0.5)), 10)
-    plt.scatter(x_time, y_realptt, s=dot_size)
-    plt.scatter(x_time, y_maxiptt, s=dot_size)
+    y_baseptt = line[3]
+    plt.scatter(x_time, y_realptt, s=dot_size, label="真实ptt")
+    plt.scatter(x_time, y_baseptt, s=dot_size, label="仅底分ptt")
+    plt.scatter(x_time, y_maxiptt, s=dot_size, label="理论最高ptt")
     plt.tick_params(axis="x", labelrotation=61.6)
-    plt.xlabel("年/月/日", fontsize=12)
+    plt.xlabel("年-月-日", fontsize=12)
     plt.ylabel("ptt", fontsize=12)
-    plt.legend(["实际输入ptt", "理论最高ptt"], loc="best")
+    plt.legend(loc="best")
     plt.show()
 
 
@@ -358,17 +367,16 @@ if __name__ == "__main__":
 
     in_list = xlsx_tolist()  # 读入xlsx文件转换成标准list
     custom_num = cust_input()  # 让用户输入想要查看的成绩数量
+    custom_num_over30 = custom_num >= 30
 
-    desc_list = get_desc_list()  # 数据有效性检查, 计算各曲rating
-    desc_ra_list = desc_list[0]  # rating倒序list (单曲ptt)
-    desc_dt_list = desc_list[1]  # detail倒序list (谱面定数)
-
+    desc_ra_list = get_desc_list()  # 数据有效性检查, 计算rating返回倒序list
     cust_average = get_cust_avg()  # 根据用户输入的成绩数量计算rating均值
-    if custom_num >= 30:  # 如果用户输入数量至少为30则:
-        real_ptt_input = float(input("请输入当前您的实际ptt(例 12.47): "))
-        b30 = get_b30_avg()  # 计算b30并return以下两个数据:
-        b30_only = b30[0]  # 仅考虑b30底分的ptt
-        b30_withr10 = b30[1]  # r10=b10时的理论最高ptt
+    if custom_num_over30:
+        b30_pack = get_b30_avg()  # 计算b30并return以下两个数据:
+        b30_only = b30_pack[0]  # 仅考虑b30底分的ptt
+        b30_withr10 = b30_pack[1]  # r10=b10时的理论最高ptt
+
+        real_ptt_input = input("请输入当前您的实际ptt(例 12.47): ")
         if input("是否要更新历史ptt数据(Y/N): ").upper() == "Y":  # by和Y都会确认
             write_ptt_history_csv()  # 把 real_ptt_input和b30_withr10 存档, 用来生成变化图像
         print()

@@ -16,9 +16,9 @@
 
 1. 右键 `ptt_history.csv`, 属性, 打开方式改为'记事本' (或其他plain text editor),
 2. 运行 `generate_excel.py`. \*需要网络链接, 请耐心等待.
-该程序会在当前目录下创建一个叫做 `put_your_score_in_here.xlsx` 的文件,
+该程序会在当前目录下创建一个叫做 `put_your_score_here.xlsx` 的文件,
 此 `xlsx` 请用 `MS Excel` 打开, 或者其他表格编辑器如 `numbers` 或者 `wps`, 拓展名请固定为 `.xlsx`.
-3. 编辑 `put_your_score_in_here.xlsx`,
+3. 编辑 `put_your_score_here.xlsx`,
 在score列输入分数, 无需全都填写, 没打的/不需要参与计算的留空不填就成.
 4. 运行 `b616.py`, 第一行输入的数字为参与计算的数据量.
 该输入会调整均值计算和图表生成的范围, 不会影响历史ptt输入和推分推荐, 如果小于30则不会计算b30.
@@ -26,7 +26,7 @@
 
 其他:
 1. 如果Arcaea(wiki)有更新, 运行 `generate_excel.py`, 通常能一步到位更新.
-运行后请检查 `put_your_score_in_here.xlsx` , 如果出现数据丢失, 结构错误等问题, 请 *不要* 重复运行程序.
+运行后请检查 `put_your_score_here.xlsx` , 如果出现数据丢失, 结构错误等问题, 请 *不要* 重复运行程序.
 更新前的数据放在同目录下的 `scores_here_backup.xlsx` , 请单独存好并在群里@GK说明 `generate_excel` 错误, 或者提issue.
 
 2. 如果不小心记录了错误/不需要的历史ptt数据, 可以直接(用记事本)打开 `ptt_history.csv` 修改数据.

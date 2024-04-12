@@ -94,7 +94,7 @@ def make_backup(filename):
 
 
 def main():
-    FILE_NAME = "put_your_score_in_here.xlsx"
+    FILE_NAME = "put_your_score_here.xlsx"
     SHEET_NAME = "Sheet1"
     df = get_all_entries()
     df = df[df["detail"] >= 8]
