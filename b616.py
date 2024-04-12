@@ -83,7 +83,7 @@ def get_desc_list():
                 error_row[0],
                 "is",
                 error_row[3],
-                ", which might be invaild, please check xlsx then run again",
+                ", which might be invalid, please check xlsx then run again",
             )
         time.sleep(1)
         input("Press enter to continue")
@@ -124,8 +124,6 @@ def write_ptt_history_csv():
 
 
 # 以下为数据分析呈现函数
-
-
 def show_desc_ra_list():
     print()
 
@@ -133,21 +131,21 @@ def show_desc_ra_list():
         print(f"{row[0]} {row[1]} {row[2]} score: {int(row[3])} rating: {row[4]:.4f}")
 
     rows = desc_ra_list[:custom_num]
-    for row in rows[:30]:
+    for row in rows[:30]:  # Print at most 30 rows
         print_row(row)
     print()
 
-    if custom_num_over30:
-        print("b30底分:", f"{b30_only:.4f}", " (忽略r10)")
-        print("r10=b10时的理论最高ptt: ", f"{b30_withr10:.4f}")
+    if custom_num_over30:  # If >= 30 rows, print b30 info
+        print(f"b30底分: {b30_only:.4f} (忽略r10)")
+        print(f"r10=b10时的理论最高ptt: {b30_withr10:.4f}")
         print("---------b30 finished---------")
         print()
 
-    for row in rows[30:]:
+    for row in rows[30:]:  # Print the rest
         print_row(row)
 
-    if custom_num != 30:
-        print(f"b{custom_num}底分:", f"{cust_average:.4f}", " (忽略r10)")
+    if custom_num != 30:  # No need for repeated b30
+        print(f"b{custom_num}底分: {cust_average:.4f} (忽略r10)")
         print(f"---------b{custom_num} finished---------")
 
 
@@ -345,19 +343,19 @@ def draw_history_b30_chart():
         print("ptt_history数据为空, 跳过生成b30折线图")
         time.sleep(1)
         return
-    x_time = [datetime.strptime(d, "%Y/%m/%d").strftime("%Y/%m/%d") for d in x_time]
+    x_time = [datetime.strptime(d, "%Y-%m-%d") for d in x_time]
     dot_size = max((50 - pow(len(x_time), 0.5)), 10)
 
     y_realptt = line[1]
     y_maxiptt = line[2]
     y_baseptt = line[3]
-    plt.scatter(x_time, y_realptt, s=dot_size)
-    plt.scatter(x_time, y_baseptt, s=dot_size)
-    plt.scatter(x_time, y_maxiptt, s=dot_size)
+    plt.scatter(x_time, y_realptt, s=dot_size, label="真实ptt")
+    plt.scatter(x_time, y_baseptt, s=dot_size, label="仅底分ptt")
+    plt.scatter(x_time, y_maxiptt, s=dot_size, label="理论最高ptt")
     plt.tick_params(axis="x", labelrotation=61.6)
-    plt.xlabel("年/月/日", fontsize=12)
+    plt.xlabel("年-月-日", fontsize=12)
     plt.ylabel("ptt", fontsize=12)
-    plt.legend(["真实ptt", "仅底分ptt", "理论最高ptt"], loc="best")
+    plt.legend(loc="best")
     plt.show()
 
 
@@ -369,11 +367,11 @@ if __name__ == "__main__":
 
     in_list = xlsx_tolist()  # 读入xlsx文件转换成标准list
     custom_num = cust_input()  # 让用户输入想要查看的成绩数量
+    custom_num_over30 = custom_num >= 30
 
     desc_ra_list = get_desc_list()  # 数据有效性检查, 计算rating返回倒序list
     cust_average = get_cust_avg()  # 根据用户输入的成绩数量计算rating均值
-    if custom_num >= 30:
-        custom_num_over30 = True  # 如果用户输入数量至少为30则:
+    if custom_num_over30:
         b30_pack = get_b30_avg()  # 计算b30并return以下两个数据:
         b30_only = b30_pack[0]  # 仅考虑b30底分的ptt
         b30_withr10 = b30_pack[1]  # r10=b10时的理论最高ptt
