@@ -27,6 +27,8 @@ songlist = requests.get(URLTEMPLATE.format("Template:Songlist.json")).json()
 songlist = preprocess_songlist(songlist)
 transition = requests.get(URLTEMPLATE.format("Template:Transition.json")).json()
 
+print("Done fetching data")
+
 
 def disambiguate_name(name: str, songid: str) -> str:
     if name in transition["sameName"]:
@@ -50,7 +52,7 @@ def get_detail_for_sorting(difficulty_record) -> float:
     return base_difficulty
 
 
-def get_all_entries() -> pd.DataFrame:
+def get_all_entries():
     rows = []
     for songid, song_info in songlist.items():
         for difficulty_record in song_info["difficulties"]:
@@ -110,9 +112,8 @@ def main():
         df_output = df
         df_output["score"] = pd.NA
         warnings.warn(
-            "Unable to process old scores, continuing without them", UserWarning
+            f"Unable to process old scores, continuing without them. Error: {e}"
         )
-        print(e)
 
     df_output.reset_index(inplace=True)
 

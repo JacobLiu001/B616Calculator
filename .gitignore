@@ -1,7 +1,5 @@
 .vscode/
-ptt_history.csv
-put_your_score_here.xlsx
-put_your_score_here_backup.xlsx
+scores.xlsx
 
 
 # The rest is taken from https://github.com/github/gitignore/blob/main/Python.gitignore
