@@ -1,6 +1,8 @@
 .vscode/
 scores.xlsx
 
+# Since we're using PyInstaller a separate build venv is needed
+build_venv/
 
 # The rest is taken from https://github.com/github/gitignore/blob/main/Python.gitignore
 # Byte-compiled / optimized / DLL files
