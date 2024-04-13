@@ -9,7 +9,7 @@ def main():
     plt.rc("font", family=plots.get_available_fonts())
 
     maxlines = int(input("Please input the number of datapoints to analyse: "))
-    data_handler = DataHandler.from_xlsx("put_your_score_here.xlsx", maxlines=maxlines)
+    data_handler = DataHandler.from_xlsx("scores.xlsx", maxlines=maxlines)
 
     plots.ptt_against_chartconstant(data_handler)
     plots.score_against_chartconstant(data_handler)
