@@ -1,7 +1,12 @@
+import pandas as pd
+import matplotlib.pyplot as plt
+
 from b616.utils.data_handler import DataHandler
 from b616.utils import plots
 
-import matplotlib.pyplot as plt
+# As recommended by the pandas documentation, we enable copy-on-write mode
+# This improves DataHandler's performance since it returns copies of the data
+pd.set_option("mode.copy_on_write", True)
 
 
 def main():

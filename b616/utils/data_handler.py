@@ -9,6 +9,13 @@ class DataHandler:
     Note that the data is immutable after initialization.
     If you want to modify the data, you should create a new DataHandler object.
     This enables caching of some computationally expensive methods.
+
+    The data returned is sorted by PTT in descending order.
+
+    NOTE: All returned data are copies of the original data, so they are safe to modify.
+    Using Copy-On-Write mode in pandas is strongly recommended for performance reasons.
+    (Also it's recommended by the pandas documentation.)
+    https://pandas.pydata.org/docs/user_guide/copy_on_write.html
     """
 
     def __init__(self, data: pd.DataFrame, *, maxlines: int | None = None) -> None:
@@ -27,11 +34,11 @@ class DataHandler:
             self._data = self._data.head(maxlines)
 
     def get_data(self) -> pd.DataFrame:
-        """Return a *copy* of the data."""
+        """Return a *copy* of the data sorted by PTT (descending)."""
         return self._data.copy()
 
     def get_column(self, column: str) -> pd.Series:
-        """Return a *copy* of a specific column."""
+        """Return a *copy* of a specific column sorted by PTT (descending)."""
         return self._data[column].copy()
 
     def get_best_n(self, n: int) -> pd.DataFrame:
