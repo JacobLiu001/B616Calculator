@@ -5,14 +5,16 @@ from b616.utils.arcaea_ptt import get_ptt_delta
 
 class DataHandler:
     """A class to handle Arcaea score data.
-
-    Note that the data is immutable after initialization.
-    If you want to modify the data, you should create a new DataHandler object.
-    This enables caching of some computationally expensive methods.
-
     The data returned is sorted by PTT in descending order.
 
+    Note that the data shall not be mutated after initialization.
+    If you want to modify the data, you should get the data, modify it,
+    and then create a new DataHandler object with the modified data.
+
     NOTE: All returned data are copies of the original data, so they are safe to modify.
+    This class is coded with the assumption that copy-on-write mode is enabled.
+    Correctness probably still holds without copy-on-write mode, but performance may be worse.
+
     Using Copy-On-Write mode in pandas is strongly recommended for performance reasons.
     (Also it's recommended by the pandas documentation.)
     https://pandas.pydata.org/docs/user_guide/copy_on_write.html
@@ -23,8 +25,7 @@ class DataHandler:
         Expects a DataFrame with columns
         "title", "difficulty", "chart_constant", "score".
         """
-        self._data = data.copy()
-        self._data.dropna(inplace=True)
+        self._data = data.dropna().copy()
         self._data["ptt"] = get_ptt_delta(self._data["score"])
         self._data["ptt"] += self._data["chart_constant"]
 
@@ -33,13 +34,10 @@ class DataHandler:
         if maxlines is not None:
             self._data = self._data.head(maxlines)
 
-    def get_data(self) -> pd.DataFrame:
-        """Return a *copy* of the data sorted by PTT (descending)."""
+    @property
+    def data(self) -> pd.DataFrame:
+        """Return the data (copied)."""
         return self._data.copy()
-
-    def get_column(self, column: str) -> pd.Series:
-        """Return a *copy* of a specific column sorted by PTT (descending)."""
-        return self._data[column].copy()
 
     def get_best_n(self, n: int) -> pd.DataFrame:
         """Return the best-ptt n song entries (copied)."""

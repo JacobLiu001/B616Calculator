@@ -43,9 +43,9 @@ def _add_hover_annotation(fig, ax, artist, text_from_ind):
 
 
 def ptt_against_chartconstant(data_handler: DataHandler):
-    x = data_handler.get_column("chart_constant")
-    y = data_handler.get_column("ptt")
-    titles = data_handler.get_column("title")
+    x = data_handler.data["chart_constant"]
+    y = data_handler.data["ptt"]
+    titles = data_handler.data["title"]
 
     fig, ax = plt.subplots()
 
@@ -58,9 +58,9 @@ def ptt_against_chartconstant(data_handler: DataHandler):
 
 
 def score_against_chartconstant(data_handler: DataHandler):
-    x = data_handler.get_column("chart_constant")
-    y = data_handler.get_column("score")
-    titles = data_handler.get_column("title")
+    x = data_handler.data["chart_constant"]
+    y = data_handler.data["score"]
+    titles = data_handler.data["title"]
 
     fig, ax = plt.subplots()
 
