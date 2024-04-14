@@ -16,7 +16,7 @@ _SCORE_THRESHOLDS_NAMES: list[tuple[str, int]] = [
 ]
 
 _score_colormap = plt.cm.get_cmap("plasma_r")
-_score_norm = colors.Normalize(vmin=9_000_000, vmax=10_000_000, clip=True)
+_score_norm = colors.Normalize(vmin=9_500_000, vmax=10_000_000, clip=True)
 _score_scalarmappable = plt.cm.ScalarMappable(norm=_score_norm, cmap=_score_colormap)
 
 
