@@ -1,8 +1,23 @@
 import matplotlib.pyplot as plt
+import numpy as np
 import matplotlib.font_manager as fm
+from matplotlib import colors
+
 from b616.utils.data_handler import DataHandler
+from b616.utils.arcaea_ptt import get_ptt_delta
 
 _FONT_CANDIDATES = ["Arial", "Microsoft YaHei", "HeiTi TC"]
+_SCORE_THRESHOLDS_NAMES: list[tuple[str, int]] = [
+    ("PM", 10_000_000),
+    ("EX+", 9_900_000),
+    ("EX", 9_800_000),
+    ("AA", 9_500_000),
+    ("A", 9_200_000),
+]
+
+_score_colormap = plt.cm.get_cmap("plasma_r")
+_score_norm = colors.Normalize(vmin=9_000_000, vmax=10_000_000, clip=True)
+_score_scalarmappable = plt.cm.ScalarMappable(norm=_score_norm, cmap=_score_colormap)
 
 
 def get_available_fonts():
@@ -46,14 +61,39 @@ def ptt_against_chartconstant(data_handler: DataHandler):
     x = data_handler.data["chart_constant"]
     y = data_handler.data["ptt"]
     titles = data_handler.data["title"]
+    scores = data_handler.data["score"]
 
     fig, ax = plt.subplots()
 
-    scatter = ax.scatter(x, y)
+    scatter = ax.scatter(x, y, s=15, c=_score_norm(scores), cmap=_score_colormap)
+    fig.draw_without_rendering()
+    ax.autoscale(False)  # Fix the axes so that the line can be drawn
+
+    line_x = np.array([0, 15])
+    min_score = scores.min()
+    for threshold_name, threshold in _SCORE_THRESHOLDS_NAMES:
+        line_y = get_ptt_delta(threshold) + line_x
+        ax.plot(
+            line_x,
+            line_y,
+            label=f"{threshold_name}",
+            linestyle="--",
+            linewidth=1,
+            alpha=0.3,
+            color=_score_colormap(_score_norm(threshold)),
+        )
+
+        if min_score > threshold:
+            break
+
     ax.set_xlabel("Chart Constant")
+    ax.xaxis.set_minor_locator(plt.MultipleLocator(0.1))
+    ax.xaxis.set_major_locator(plt.MultipleLocator(0.2))
     ax.set_ylabel("Song PTT")
     ax.set_title("PTT against Chart Constant")
-    _add_hover_annotation(fig, ax, scatter, lambda ind: titles.iloc[ind])
+    ax.legend()
+    fig.colorbar(_score_scalarmappable, ax=ax, extend="both")
+    # _add_hover_annotation(fig, ax, scatter, lambda ind: titles.iloc[ind])
     return fig
 
 
