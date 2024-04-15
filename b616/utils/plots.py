@@ -37,8 +37,19 @@ def get_available_fonts():
 
 
 def add_toggleable_annotations(xs, ys, texts, fig, ax, artist):
+    """Does the following things:
+    - add texts at points specified at `xs` and `ys`
+    - make the texts toggleable by clicking on them
+    - add buttons to show/hide all texts
+    - automatically adjust the positions of the texts to prevent overlap
+
+    The positions are adjusted on resize and ylim_changed events.
+
+    The repositioning algorithm is simple: For texts in each x position, start from the
+    second topmost text and move it down if it overlaps with the text immediately above.
+    """
     DEFAULT_OFFSET = (5, 0)
-    annotations_by_x = dict()  # map x to list of annotations
+    annotations_by_x = dict()  # map x to list of annotations, for repositioning
     all_annotations = []  # flat list of all annotations, for indexing when toggling
     for x, y, text in zip(xs, ys, texts):
         annotation = ax.annotate(
@@ -55,7 +66,9 @@ def add_toggleable_annotations(xs, ys, texts, fig, ax, artist):
         annotations_by_x.setdefault(x, []).append(annotation)
         all_annotations.append(annotation)
 
+    # Adjust the positions of the annotations to prevent overlap
     def adjust_positions():
+        # This draw is to ensure get_window_extent() has the correct renderer
         fig.draw_without_rendering()
         for annotations in annotations_by_x.values():
             # Annotations are already sorted by y, because the data is sorted by PTT
@@ -70,11 +83,14 @@ def add_toggleable_annotations(xs, ys, texts, fig, ax, artist):
                     delta = this_y_top - prev_y
                     xtext, ytext = annotation.get_position()
                     annotation.set_position((xtext, ytext - delta - 5))
+        # Redraw the canvas to reflect the changes once mpl has control again
         fig.canvas.draw_idle()
 
+    # Reposition whenever the figure is resized or the y limits are changed (zooming)
     fig.canvas.mpl_connect("resize_event", lambda _: adjust_positions())
     ax.callbacks.connect("ylim_changed", lambda _: adjust_positions())
 
+    # Add buttons to show/hide all annotations
     def set_all_visibility(visible):
         for annotation in all_annotations:
             annotation.set_visible(visible)
@@ -89,12 +105,19 @@ def add_toggleable_annotations(xs, ys, texts, fig, ax, artist):
     # Keep the buttons alive so that they are not garbage collected
     _keepalive.extend([button_show_all, button_hide_all])
 
+    # To enable click-to-toggle visibility we need to tell mpl the artist is pickable
     artist.set_picker(5)
 
     def on_pick(event):
-        ind = event.ind[0]
-        visibility = not all_annotations[ind].get_visible()
-        all_annotations[ind].set_visible(visibility)
+        # Toggle the visibility of the annotation that was clicked
+        # If multiple annotations are clicked, it follows a binary counting pattern
+        for ind in event.ind:
+            annotation = all_annotations[ind]
+            vis = annotation.get_visible()
+            if not vis:
+                annotation.set_visible(True)
+                break
+            annotation.set_visible(False)
         fig.canvas.draw_idle()
 
     fig.canvas.mpl_connect("pick_event", on_pick)
