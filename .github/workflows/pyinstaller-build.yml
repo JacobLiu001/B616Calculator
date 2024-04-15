@@ -39,12 +39,9 @@ jobs:
         pip install pyinstaller
     - name: Build with PyInstaller
       run: |
-        pyinstaller --onefile b616.py
-        pyinstaller --onefile generate_excel.py
+        pyinstaller --onefile main.py
     - name: Upload artifacts
       uses: actions/upload-artifact@v4
       with:
         name: executables-${{ matrix.generic-name }}
         path: dist/*
-        retention-days: 7
-        overwrite: true
