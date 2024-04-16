@@ -184,18 +184,10 @@ def score_against_chartconstant(data_handler: DataHandler):
     def draw_ptt_contour(ptt, **kwargs):
         line_y = np.array(get_score_thresholds())
         line_x = ptt - get_ptt_delta(line_y)
-        ax.plot(
-            line_x,
-            line_y,
-            **(
-                {
-                    "linestyle": "--",
-                    "linewidth": 1,
-                    "alpha": 0.3,
-                }
-                | kwargs
-            ),
-        )
+        kwargs.setdefault("linestyle", "--")
+        kwargs.setdefault("linewidth", 1)
+        kwargs.setdefault("alpha", 0.3)
+        ax.plot(line_x, line_y, **kwargs)
 
     draw_ptt_contour(
         data_handler.get_best_n_pttavg(),
