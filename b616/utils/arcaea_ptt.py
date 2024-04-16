@@ -1,8 +1,8 @@
 import numpy as np
 
 _THRESHOLDS = {
-    "score": [9_500_000 - 12 * 300_000, 9_500_000, 9_800_000, 10_000_000],
-    "ptt_delta": [-12, 0, 1, 2],
+    "score": [0, 9_500_000, 9_800_000, 10_000_000],
+    "ptt_delta": [-9_500_000 / 300_000, 0, 1, 2],
 }
 
 
@@ -15,5 +15,4 @@ def get_ptt_delta(score):
 
 
 def get_score(ptt_delta):
-    # NOTE: will never return a score less than 9_500_000 - 12 * 300_000 == 5_900_000
     return np.interp(ptt_delta, _THRESHOLDS["ptt_delta"], _THRESHOLDS["score"])
