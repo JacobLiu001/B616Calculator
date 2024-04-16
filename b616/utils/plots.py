@@ -6,7 +6,7 @@ from matplotlib import colors
 from matplotlib.widgets import Button
 
 from b616.utils.data_handler import DataHandler
-from b616.utils.arcaea_ptt import get_ptt_delta
+from b616.utils.arcaea_ptt import get_ptt_delta, get_score_thresholds
 
 _FONT_CANDIDATES = ["Arial", "Microsoft YaHei", "HeiTi TC"]
 _SCORE_THRESHOLDS_NAMES: list[tuple[str, int]] = [
@@ -75,13 +75,15 @@ def add_toggleable_annotations(xs, ys, texts, fig, ax, artist):
             # So for any given chart constant, scores are in descending order
             for annotation, prev_annotation in zip(annotations[1:], annotations[:-1]):
                 annotation.set_position(DEFAULT_OFFSET)
-                bbox = annotation.get_window_extent()
-                this_y_top = bbox.bounds[1] + bbox.bounds[3]
+                # use the bounding box of the text to test for overlap
+                (_, ymin, _, height) = annotation.get_window_extent().bounds
+                this_y_top = ymin + height
                 prev_y = prev_annotation.get_tightbbox().bounds[1]
 
                 if this_y_top > prev_y:
                     delta = this_y_top - prev_y
                     xtext, ytext = annotation.get_position()
+                    # leave 5 pixels of space between the texts
                     annotation.set_position((xtext, ytext - delta - 5))
         # Redraw the canvas to reflect the changes once mpl has control again
         fig.canvas.draw_idle()
@@ -174,9 +176,40 @@ def score_against_chartconstant(data_handler: DataHandler):
     fig, ax = plt.subplots()
 
     scatter = ax.scatter(x, y, s=15, c=_score_norm(scores), cmap=_score_colormap)
+
+    # Draw a line s.t. song ptt == b30avg
+    fig.draw_without_rendering()
+    ax.autoscale(False)  # Fix the axes so that the line can be drawn
+
+    def draw_ptt_contour(ptt, **kwargs):
+        line_y = np.array(get_score_thresholds())
+        line_x = ptt - get_ptt_delta(line_y)
+        ax.plot(
+            line_x,
+            line_y,
+            **(
+                {
+                    "linestyle": "--",
+                    "linewidth": 1,
+                    "alpha": 0.3,
+                }
+                | kwargs
+            ),
+        )
+
+    draw_ptt_contour(
+        data_handler.get_best_n_pttavg(),
+        label=f"b{data_handler.size} avg countour",
+    )
+    draw_ptt_contour(
+        data_handler.get_best_n().iloc[-1]["ptt"],
+        label=f"b{data_handler.size} floor countour",
+    )
+
     ax.set_xlabel("Chart Constant")
     ax.set_ylabel("Score")
     ax.set_title("Score against Chart Constant")
+    ax.legend()
 
     add_toggleable_annotations(x, y, titles, fig, ax, scatter)
     return fig

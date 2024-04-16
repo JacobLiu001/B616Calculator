@@ -35,17 +35,26 @@ class DataHandler:
             self._data = self._data.head(maxlines)
 
     @property
+    def size(self) -> int:
+        """Return the number of data entries."""
+        return self._data.shape[0]
+
+    @property
     def data(self) -> pd.DataFrame:
         """Return the data (copied)."""
         return self._data.copy()
 
-    def get_best_n(self, n: int) -> pd.DataFrame:
+    def get_best_n(self, n: int | None = None) -> pd.DataFrame:
         """Return the best-ptt n song entries (copied)."""
+        if n is None:
+            return self._data.copy()
         return self._data.head(n).copy()
 
     @cache
-    def get_best_n_pttavg(self, n: int = 30) -> float:
+    def get_best_n_pttavg(self, n: int | None = None) -> float:
         """Return the average PTT of the best n scores."""
+        if n is None:
+            return self._data["ptt"].mean()
         return self._data.head(n)["ptt"].mean()
 
     @classmethod

@@ -6,6 +6,10 @@ _THRESHOLDS = {
 }
 
 
+def get_score_thresholds():
+    return _THRESHOLDS["score"]
+
+
 def get_ptt_delta(score):
     return np.interp(score, _THRESHOLDS["score"], _THRESHOLDS["ptt_delta"])
 
