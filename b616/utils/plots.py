@@ -1,12 +1,12 @@
+import matplotlib.font_manager as fm
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import matplotlib.font_manager as fm
 from matplotlib import colors
 from matplotlib.widgets import Button
 
-from b616.utils.data_handler import DataHandler
 from b616.utils.arcaea_ptt import get_ptt_delta, get_score_thresholds
+from b616.utils.data_handler import DataHandler
 
 _FONT_CANDIDATES = ["Arial", "Microsoft YaHei", "HeiTi TC"]
 _SCORE_THRESHOLDS_NAMES: list[tuple[str, int]] = [

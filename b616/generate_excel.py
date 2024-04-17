@@ -1,8 +1,9 @@
-import pandas as pd
-import warnings
 import pathlib
-import requests
 import shutil
+import warnings
+
+import pandas as pd
+import requests
 
 DIFFICULTIES = ["PST", "PRS", "FTR", "BYD", "ETR"]
 DIFFICULTY_COLORS = {

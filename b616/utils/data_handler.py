@@ -1,5 +1,7 @@
-import pandas as pd
 from functools import cache
+
+import pandas as pd
+
 from b616.utils.arcaea_ptt import get_ptt_delta
 
 
