@@ -49,6 +49,7 @@ def add_toggleable_annotations(xs, ys, texts, fig, ax, artist):
     second topmost text and move it down if it overlaps with the text immediately above.
     """
     DEFAULT_OFFSET = (5, 0)
+    DEFAULT_FONTSIZE = 8
     annotations_by_x = dict()  # map x to list of annotations, for repositioning
     all_annotations = []  # flat list of all annotations, for indexing when toggling
     for x, y, text in zip(xs, ys, texts):
@@ -59,12 +60,33 @@ def add_toggleable_annotations(xs, ys, texts, fig, ax, artist):
             xytext=DEFAULT_OFFSET,
             horizontalalignment="left",
             verticalalignment="baseline",
-            fontsize=8,
+            fontsize=DEFAULT_FONTSIZE,
             color="black",
             bbox={"facecolor": "white", "alpha": 0.2, "edgecolor": "none", "pad": 1},
         )
         annotations_by_x.setdefault(x, []).append(annotation)
         all_annotations.append(annotation)
+
+    def adjust_textsize():
+        fig.draw_without_rendering()
+        keys = sorted(annotations_by_x.keys(), reverse=True)
+
+        for i, x in enumerate(keys[1:], start=1):
+            next_col_xs = keys[:i]
+            next_col_bboxes = [
+                a.get_tightbbox()
+                for next_col_x in next_col_xs
+                for a in annotations_by_x[next_col_x]
+            ]
+            for annotation in annotations_by_x[x]:
+                # Set the font size to the default
+                annotation.set_fontsize(DEFAULT_FONTSIZE)
+
+                # Reduce the font size until it doesn't overlap
+                while annotation.get_tightbbox().count_overlaps(next_col_bboxes) > 0:
+                    annotation.set_fontsize(annotation.get_fontsize() - 1)
+                    if annotation.get_fontsize() <= 1:
+                        break
 
     # Adjust the positions of the annotations to prevent overlap
     def adjust_positions():
@@ -89,6 +111,7 @@ def add_toggleable_annotations(xs, ys, texts, fig, ax, artist):
         fig.canvas.draw_idle()
 
     # Reposition whenever the figure is resized or the y limits are changed (zooming)
+    fig.canvas.mpl_connect("resize_event", lambda _: adjust_textsize())
     fig.canvas.mpl_connect("resize_event", lambda _: adjust_positions())
     ax.callbacks.connect("ylim_changed", lambda _: adjust_positions())
 
@@ -199,6 +222,8 @@ def score_against_chartconstant(data_handler: DataHandler):
     )
 
     ax.set_xlabel("Chart Constant")
+    ax.xaxis.set_minor_locator(plt.MultipleLocator(0.1))
+    ax.xaxis.set_major_locator(plt.MultipleLocator(0.2))
     ax.set_ylabel("Score")
     ax.set_title("Score against Chart Constant")
     ax.legend()
