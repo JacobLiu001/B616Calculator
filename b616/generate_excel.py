@@ -62,8 +62,8 @@ def get_all_entries():
             if difficulty_record.get("hidden_until", "never") == "always":
                 # Skip other hidden charts for future-proofing
                 continue
-            ratingClass: int = difficulty_record["ratingClass"]
-            title: str = song_info["title_localized"]["en"]
+            ratingClass = difficulty_record["ratingClass"]
+            title = song_info["title_localized"]["en"]
             if "title_localized" in difficulty_record:
                 # If the difficulty has a different name, use that
                 title = difficulty_record["title_localized"]["en"]
