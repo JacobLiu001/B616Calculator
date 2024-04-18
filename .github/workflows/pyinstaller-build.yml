@@ -20,10 +20,13 @@ jobs:
         include:
           - os: ubuntu-latest
             generic-name: Linux
+            executable-extension: ""
           - os: macos-latest
             generic-name: MacOS
+            executable-extension: ""
           - os: windows-latest
             generic-name: Windows
+            executable-extension: ".exe"
     runs-on: ${{ matrix.os }}
     steps:
     - uses: actions/checkout@v4
@@ -40,6 +43,15 @@ jobs:
     - name: Build with PyInstaller
       run: |
         pyinstaller --onefile main.py
+        mv dist/main${{ matrix.executable-extension }} dist/main-${{ matrix.generic-name }}${{ matrix.executable-extension }}
+    - name: Release
+      id: release
+      uses: softprops/action-gh-release@v2
+      with:
+        draft: true
+        make_latest: true
+        files: |
+          dist/main-${{ matrix.generic-name }}${{ matrix.executable-extension }}
     - name: Upload artifacts
       uses: actions/upload-artifact@v4
       with:
