@@ -19,13 +19,13 @@ jobs:
         os: [ubuntu-latest, macos-latest, windows-latest]
         include:
           - os: ubuntu-latest
-            generic-name: Linux
+            generic-name: linux
             executable-extension: ""
           - os: macos-latest
-            generic-name: MacOS
+            generic-name: macOS
             executable-extension: ""
           - os: windows-latest
-            generic-name: Windows
+            generic-name: windows
             executable-extension: ".exe"
     runs-on: ${{ matrix.os }}
     steps:
@@ -52,6 +52,7 @@ jobs:
         make_latest: true
         files: |
           dist/main-${{ matrix.generic-name }}${{ matrix.executable-extension }}
+        token: ${{ secrets.ACTIONS_RELEASE_PAT }}
     - name: Upload artifacts
       uses: actions/upload-artifact@v4
       with:
