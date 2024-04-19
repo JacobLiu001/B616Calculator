@@ -36,7 +36,7 @@ def get_available_fonts():
     return usefonts
 
 
-def add_toggleable_annotations(xs, ys, texts, fig, ax, artist):
+def _add_toggleable_annotations(xs, ys, texts, fig, ax, artist):
     """Does the following things:
     - add texts at points specified at `xs` and `ys`
     - make the texts toggleable by clicking on them
@@ -186,7 +186,7 @@ def ptt_against_chartconstant(data_handler: DataHandler):
     ax.legend()
     fig.colorbar(_score_scalarmappable, ax=ax, extend="both")
 
-    add_toggleable_annotations(x, y, titles, fig, ax, scatter)
+    _add_toggleable_annotations(x, y, titles, fig, ax, scatter)
     return fig
 
 
@@ -228,5 +228,5 @@ def score_against_chartconstant(data_handler: DataHandler):
     ax.set_title("Score against Chart Constant")
     ax.legend()
 
-    add_toggleable_annotations(x, y, titles, fig, ax, scatter)
+    _add_toggleable_annotations(x, y, titles, fig, ax, scatter)
     return fig
