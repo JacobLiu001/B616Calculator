@@ -1,10 +1,11 @@
-import pathlib
-import shutil
-import warnings
+from dataclasses import dataclass
+from itertools import chain
 
 import pandas as pd
 import requests
+import xlsxwriter  # type: ignore
 
+URLTEMPLATE = r"https://arcwiki.mcd.blue/index.php?title={}&action=raw"
 DIFFICULTIES = ["PST", "PRS", "FTR", "BYD", "ETR"]
 DIFFICULTY_COLORS = {
     "PST": "#40A0A0",
@@ -15,148 +16,155 @@ DIFFICULTY_COLORS = {
 }
 
 
-def preprocess_songlist(raw):
-    raw = raw["songs"]
-    songlist = {song["id"]: song for song in raw}
-    return songlist
+class Resources:
+    def __init__(self):
+        self._chartconstant = None
+        self._songlist = None
+        self._transition = None
 
+    @classmethod
+    def __preprocess_songlist(cls, raw):
+        raw = raw["songs"]
+        songlist = {song["id"]: song for song in raw}
+        return songlist
 
-# sequentially request the files
-URLTEMPLATE = r"https://arcwiki.mcd.blue/index.php?title={}&action=raw"
-chartconstant = requests.get(URLTEMPLATE.format("Template:ChartConstant.json")).json()
-songlist = requests.get(URLTEMPLATE.format("Template:Songlist.json")).json()
-songlist = preprocess_songlist(songlist)
-transition = requests.get(URLTEMPLATE.format("Template:Transition.json")).json()
-
-print("Done fetching data")
-
-
-def disambiguate_name(name: str, songid: str) -> str:
-    if name in transition["sameName"]:
-        name = transition["sameName"][name][songid]
-    return name
-
-
-def get_link_name(songid: str) -> str:
-    name = songlist[songid]["title_localized"]["en"]
-    # convert to display name if possible
-    name = transition["songNameToDisplayName"].get(name, name)
-    return disambiguate_name(name, songid)
-
-
-def get_detail_for_sorting(difficulty_record) -> float:
-    base_difficulty = float(difficulty_record["rating"])
-    rating_plus = difficulty_record.get("ratingPlus", False)
-    if rating_plus:
-        # just for sorting purposes, such that 9 < 9+ < 10
-        base_difficulty += 0.5
-    return base_difficulty
-
-
-def get_all_entries():
-    rows = []
-    for songid, song_info in songlist.items():
-        for difficulty_record in song_info["difficulties"]:
-            if difficulty_record["rating"] == 0:
-                # Last | Eternity has three 0-rated non-existent charts
-                continue
-            if difficulty_record.get("hidden_until", "never") == "always":
-                # Skip other hidden charts for future-proofing
-                continue
-            ratingClass = difficulty_record["ratingClass"]
-            title = song_info["title_localized"]["en"]
-            if "title_localized" in difficulty_record:
-                # If the difficulty has a different name, use that
-                title = difficulty_record["title_localized"]["en"]
-            rows.append(
-                {
-                    "songid": songid,
-                    "label": DIFFICULTIES[ratingClass],
-                    "title": disambiguate_name(title, songid),
-                    "detail": chartconstant[songid][ratingClass]["constant"],
-                    "linkName": get_link_name(songid),
-                    "detail_for_sorting": get_detail_for_sorting(difficulty_record),
-                }
-            )
-
-    return pd.DataFrame.from_records(rows, index=["songid", "label"]).dropna()
-
-
-def make_backup(filename):
-    filepath = pathlib.Path(filename)
-
-    if not filepath.exists():
-        warnings.warn("File not found, not making backup", UserWarning)
-        return
-    backupname = filepath.with_stem(filepath.stem + "_backup")
-
-    if backupname.exists():
-        warnings.warn("Overwriting the backup", UserWarning)
-        backupname.unlink()
-    shutil.copy2(filename, backupname)
-
-
-def main():
-    FILE_NAME = "put_your_score_here.xlsx"
-    SHEET_NAME = "Sheet1"
-    df = get_all_entries()
-    df = df[df["detail"] >= 8]
-
-    make_backup(FILE_NAME)
-
-    # Read the old scores and merge them
-    try:
-        df_in = pd.read_excel(FILE_NAME).set_index(["songid", "label"])
-        df_in = df_in[["score"]]
-        df_output = df.join(df_in, how="outer", on=["songid", "label"])
-    except (FileNotFoundError, KeyError, ValueError) as e:
-        df_output = df
-        df_output["score"] = pd.NA
-        warnings.warn(
-            f"Unable to process old scores, continuing without them. Error: {e}"
+    def fetch(self):
+        self._chartconstant = requests.get(
+            URLTEMPLATE.format("Template:ChartConstant.json")
+        ).json()
+        self._songlist = self.__preprocess_songlist(
+            requests.get(URLTEMPLATE.format("Template:Songlist.json")).json()
         )
+        self._transition = requests.get(
+            URLTEMPLATE.format("Template:Transition.json")
+        ).json()
 
-    df_output.reset_index(inplace=True)
+    @property
+    def chartconstant(self):
+        if self._chartconstant is None:
+            self.fetch()
+        return self._chartconstant
 
-    df_output["name"] = df_output["title"]
-    df_output["name_for_sorting"] = df_output["name"].str.upper()
+    @property
+    def songlist(self):
+        if self._songlist is None:
+            self.fetch()
+        return self._songlist
+
+    @property
+    def transition(self):
+        if self._transition is None:
+            self.fetch()
+        return self._transition
+
+
+class Song:
+    @dataclass
+    class Difficulty:
+        rating_class: str
+        title: str | None
+        rating: float  # +0.5 for ratingPlus
+        detail: float  # true chart constant (i.e., "detailed" rating)
+
+    def __init__(self, resources: Resources, songid: str):
+        self.songid = songid
+        self.link_name = self.__get_link_name(resources)
+        self.base_title = resources.songlist[songid]["title_localized"]["en"]
+        self.title = self.__disambiguate_base_title(resources)
+        self.difficulties = self.__get_difficulties(resources)
+
+    def __disambiguate_base_title(self, resources: Resources):
+        if self.base_title in resources.transition["sameName"]:
+            return resources.transition["sameName"][self.base_title][self.songid]
+        return self.base_title
+
+    def __get_link_name(self, resources: Resources):
+        name = resources.songlist[self.songid]["title_localized"]["en"]
+        # convert to display name if possible
+        name = resources.transition["songNameToDisplayName"].get(name, name)
+        if name in resources.transition["sameName"]:
+            name = resources.transition["sameName"][name][self.songid]
+        return name
+
+    def __get_difficulties(self, resources: Resources):
+        difficulties: list[Song.Difficulty] = []
+        for difficulty_entry in resources.songlist[self.songid]["difficulties"]:
+            if difficulty_entry["rating"] == 0:
+                continue
+            if difficulty_entry.get("hidden_until", "never") == "always":
+                continue
+            rating_class_id = difficulty_entry["ratingClass"]
+            rating_class = DIFFICULTIES[rating_class_id]
+            rating = float(difficulty_entry["rating"])
+            if difficulty_entry.get("ratingPlus", False):
+                rating += 0.5
+            detail = resources.chartconstant[self.songid][rating_class_id]["constant"]
+            title = difficulty_entry.get("title_localized", {}).get("en", None)
+            difficulties.append(Song.Difficulty(rating_class, title, rating, detail))
+        return difficulties
+
+    def iter_entries(self):
+        for difficulty in self.difficulties:
+            yield {
+                "songid": self.songid,
+                "label": difficulty.rating_class,
+                "title": self.title if difficulty.title is None else difficulty.title,
+                "detail": difficulty.detail,
+                "linkName": self.link_name,
+                "detail_for_sorting": difficulty.rating,
+            }
+
+
+def get_all_entries(resources: Resources):
+    return chain.from_iterable(
+        Song(resources, songid).iter_entries() for songid in resources.songlist
+    )
+
+
+def write_to_excel(df: pd.DataFrame, filename: str, sheetname: str):
+    df = df.reset_index()
+
+    df["name"] = df["title"]
+    df["name_for_sorting"] = df["name"].str.upper()
     # Xlsxwriter hackery: write links first, then write the text
     # And it will still point to the correct link
-    df_output["title"] = "https://arcwiki.mcd.blue/" + df_output["linkName"]
+    df["title"] = "https://arcwiki.mcd.blue/" + df["linkName"]
 
-    df_output.sort_values(
+    df.sort_values(
         ["label", "detail_for_sorting", "name_for_sorting"],
         inplace=True,
         ascending=[True, False, True],
     )
 
     OUTPUT_COLUMNS = ["title", "label", "detail", "score", "songid"]
-    writer = pd.ExcelWriter(FILE_NAME, engine="xlsxwriter")
-    df_output.to_excel(
-        writer, index=False, columns=OUTPUT_COLUMNS, sheet_name=SHEET_NAME
-    )
+    writer = pd.ExcelWriter(filename, engine="xlsxwriter")
+    df.to_excel(writer, index=False, columns=OUTPUT_COLUMNS, sheet_name=sheetname)
 
-    workbook = writer.book
-    worksheet = writer.sheets[SHEET_NAME]
+    workbook: xlsxwriter.Workbook = writer.book
+    worksheet = writer.sheets[sheetname]
     header_format = workbook.add_format(
         {
             "font_name": "calibri",
             "bold": True,
-            "valign": "top",
+            "valign": "vcenter",
             "bg_color": "#FFE699",
             "border": 1,
             "align": "center",
         }
     )
     base_format = workbook.add_format(
-        {"font_name": "calibri", "valign": "top", "align": "center"}
+        {"font_name": "calibri", "valign": "vcenter", "align": "center"}
+    )
+    songid_format = workbook.add_format(
+        {"font_name": "calibri", "valign": "vcenter", "align": "left"}
     )
     # Write the names over the links; this preserves the link
-    worksheet.write_column(1, 0, df_output["name"], workbook.get_default_url_format())
+    worksheet.write_column(1, 0, df["name"], workbook.get_default_url_format())
     worksheet.set_column(0, 0, 50)  # Names (links)
     worksheet.set_column(1, 2, 8, base_format)  # Difficulty label and detail constant
     worksheet.set_column(3, 3, 15, base_format)  # Score, wide since max ~1e7
-    worksheet.set_column(4, 4, None, None, {"hidden": True})  # hide songid column
+    # Don't hide songid column (4) so the user won't forget to include it if they sort
+    worksheet.set_column(4, 4, 15, songid_format, {"hidden": False})
 
     # Format the header row
     for col_num, value in enumerate(OUTPUT_COLUMNS):
@@ -178,6 +186,49 @@ def main():
         )
 
     writer.close()
+
+
+def merge_scores(df: pd.DataFrame, df_old: pd.DataFrame | None) -> pd.DataFrame:
+    """Merges the new scores with the old scores, if they exist.
+    If the old scores do not exist, scores are left blank.
+
+    Both dataframes are expected to have the columns "songid" and "label".
+    """
+    if df.index.names != ["songid", "label"]:
+        df = df.reset_index().set_index(["songid", "label"])
+    if df_old is None:
+        df["score"] = ""
+        return df
+    if df_old.index.names != ["songid", "label"]:
+        df_old = df_old.reset_index().set_index(["songid", "label"])
+    df_old = df_old[["score"]]  # Only keep the score column so we can just join
+    # left join, discarding any old scores whose songid/label is not in the new data
+    print(df, df_old)
+    return df.join(df_old, on=["songid", "label"], how="left")
+
+
+def main():
+    FILE_NAME = "scores.xlsx"
+    SHEET_NAME = "Sheet1"
+    resources = Resources()
+    resources.fetch()
+
+    df = pd.DataFrame.from_records(
+        get_all_entries(resources), index=["songid", "label"]
+    ).dropna()
+
+    # We're only interested in entries with chart constant >= 8
+    df = df[df["detail"] >= 8]
+
+    # Read the old scores and merge them
+    try:
+        df_old = pd.read_excel(FILE_NAME)
+    except FileNotFoundError:
+        df_old = None
+
+    df_output = merge_scores(df, df_old)
+
+    write_to_excel(df_output, FILE_NAME, SHEET_NAME)
 
 
 if __name__ == "__main__":
