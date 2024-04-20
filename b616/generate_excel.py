@@ -193,6 +193,7 @@ def merge_scores(df: pd.DataFrame, df_old: pd.DataFrame | None) -> pd.DataFrame:
     If the old scores do not exist, scores are left blank.
 
     Both dataframes are expected to have the columns "songid" and "label".
+    It is recommended to set the index to ["songid", "label"] before calling this function.
     """
     if df.index.names != ["songid", "label"]:
         df = df.reset_index().set_index(["songid", "label"])
